@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   SAMADHAN SETU — GOVERNMENT-GRADE DESIGN SYSTEM
+   ============================================================ */
+
+:root {
+  --navy-950: #0B192C;
+  --navy-900: #0F2C59;
+  --navy-800: #1E3E62;
+  --navy-700: #2a3c8a;
+  --saffron: #E65100;
+  --saffron-light: #FF8F00;
+  --civic-green: #2E7D32;
+  --civic-green-light: #4CAF50;
+  --slate-border: #E2E8F0;
+  --off-white: #F8F9FA;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  font-family: 'Inter', 'Noto Sans', system-ui, -apple-system, sans-serif;
+  background-color: var(--off-white);
+  color: #1a202c;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Indian tricolor accent bar at very top */
+.tricolor-bar {
+  height: 3px;
+  background: linear-gradient(to right, #FF8F00 33.33%, #FFFFFF 33.33%, #FFFFFF 66.66%, #2E7D32 66.66%);
+}
+
+/* Government-style section dividers */
+.gov-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, #E2E8F0, transparent);
+}
+
+/* Smooth transitions on interactive elements */
+a, button, input, select, textarea {
+  transition: all 0.15s ease;
+}
+
+/* Focus visible ring for accessibility */
+:focus-visible {
+  outline: 2px solid #1E3E62;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Leaflet map override inside containers */
+.leaflet-container {
+  font-family: 'Inter', sans-serif !important;
+  z-index: 1;
+}
+
+/* Animation classes */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-down {
+  animation: slideDown 0.25s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Progress bar */
+.progress-bar {
+  background: linear-gradient(90deg, #1E3E62, #E65100);
+  border-radius: 99px;
+  height: 6px;
+  transition: width 0.5s ease;
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card-hover:hover {
+  box-shadow: 0 8px 24px rgba(15, 44, 89, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Badge styles */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* Skeleton loader */
+.skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.4s infinite;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
