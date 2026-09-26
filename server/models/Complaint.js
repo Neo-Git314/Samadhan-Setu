@@ -29,6 +29,42 @@ const complaintSchema = new mongoose.Schema(
       required: [true, 'District is required'],
       trim: true
     },
+    districtCode: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    state: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    stateCode: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    city: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    cityCode: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    pincode: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    acknowledgementNumber: {
+      type: String,
+      default: '',
+      trim: true,
+      index: true
+    },
     // GeoJSON coordinate point for MongoDB 2dsphere spatial indexing
     geoPoint: {
       type: { type: String, enum: ['Point'], default: 'Point' },

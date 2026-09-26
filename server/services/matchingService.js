@@ -65,10 +65,10 @@ export const matchUniversities = async (complaintId) => {
       const rawReputation = typeof uni.reputationScore === 'number' ? uni.reputationScore : 0;
       const reputationNorm = Math.min(Math.max(0, rawReputation / 100), 1.0);
 
-      // 5. Final Task 8.1 weighted score:
-      // FinalScore = (0.5 * CategoryMatch) + (0.3 * EmbeddingSim) + (0.2 * ReputationNorm)
+      // Final Phase 13 weighted score:
+      // finalScore = 0.6 * categoryMatch + 0.4 * embeddingSimilarity
       const finalScore = Number(
-        (0.5 * categoryMatch + 0.3 * embeddingSimilarity + 0.2 * reputationNorm).toFixed(4)
+        (0.6 * categoryMatch + 0.4 * embeddingSimilarity).toFixed(4)
       );
 
       scoredUniversities.push({

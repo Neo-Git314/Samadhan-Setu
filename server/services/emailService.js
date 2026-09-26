@@ -10,8 +10,8 @@ export const sendMail = async ({ to, subject, text, html }) => {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, FROM_EMAIL } = process.env;
 
   // Fallback / simulation for development and testing environments without active SMTP
-  if (!SMTP_HOST || !SMTP_USER || SMTP_HOST === 'smtp.example.com' || SMTP_USER.includes('your_smtp')) {
-    console.log(`[emailService] Simulated email to <${to}>: "${subject}"`);
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || SMTP_HOST === 'smtp.example.com' || SMTP_USER.includes('your_smtp') || SMTP_USER === 'test_user') {
+    console.log('[emailService] SMTP not configured — email skipped');
     return {
       sent: true,
       simulated: true,

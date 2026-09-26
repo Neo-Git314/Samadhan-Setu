@@ -5,9 +5,11 @@ import { complaintApi } from '../api/endpoints';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorState from '../components/ErrorState';
+import { downloadGrievancePDF, printGrievancePDF } from '../services/pdfService';
 import {
   ArrowLeft, MapPin, Calendar, User, Tag, Image as ImgIcon,
-  AlertTriangle, Shield, Copy, ExternalLink, GitBranch
+  AlertTriangle, Shield, Copy, ExternalLink, GitBranch,
+  Download, Printer
 } from 'lucide-react';
 
 let L;
@@ -182,6 +184,59 @@ export default function ComplaintDetail() {
 
           {/* Sidebar */}
           <div className="space-y-4">
+            {/* Official PDF Document Card */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-2.5">
+              <h3 className="text-xs font-bold text-[#123B68] uppercase tracking-wide">
+                Official Redressal Documents
+              </h3>
+              <p className="text-[11px] text-[#58718A]">
+                Download or print the authenticated public service acknowledgement receipt.
+              </p>
+              <div className="flex flex-col gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => downloadGrievancePDF({
+                    ...c,
+                    id: c.acknowledgementNumber || c._id,
+                    acknowledgementNumber: c.acknowledgementNumber || c._id,
+                    citizenName: c.submittedBy?.name || 'Citizen',
+                    citizenMobile: c.submittedBy?.phone || '',
+                    citizenEmail: c.submittedBy?.email || '',
+                    citizenAddress: c.address || '',
+                    location: c.address || `${c.city || ''} ${c.district || ''}`.trim() || 'Location',
+                    category: c.category,
+                    title: c.title,
+                    description: c.description
+                  })}
+                  className="w-full py-2 px-3 bg-[#123B68] hover:bg-[#0B2440] text-white text-xs font-bold rounded flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                >
+                  <Download size={13} />
+                  <span>Download Acknowledgement PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => printGrievancePDF({
+                    ...c,
+                    id: c.acknowledgementNumber || c._id,
+                    acknowledgementNumber: c.acknowledgementNumber || c._id,
+                    citizenName: c.submittedBy?.name || 'Citizen',
+                    citizenMobile: c.submittedBy?.phone || '',
+                    citizenEmail: c.submittedBy?.email || '',
+                    citizenAddress: c.address || '',
+                    location: c.address || `${c.city || ''} ${c.district || ''}`.trim() || 'Location',
+                    category: c.category,
+                    title: c.title,
+                    description: c.description
+                  })}
+                  className="w-full py-2 px-3 bg-[#EEF7FC] hover:bg-[#DDEEF8] text-[#123B68] border border-[#B8D5E5] text-xs font-bold rounded flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Printer size={13} />
+                  <span>Print Slip</span>
+                </button>
+              </div>
+            </div>
+
             {/* Map */}
             {c.geoPoint?.coordinates && (
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">

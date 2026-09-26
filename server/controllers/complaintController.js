@@ -6,6 +6,7 @@ import { classifyComplaint, analyzeImage, getEmbedding } from '../services/aiSer
 import { checkDuplicates } from '../services/dedupService.js';
 import { matchUniversities } from '../services/matchingService.js';
 import { verifyComplaintLocation } from '../services/fraudService.js';
+import { generateAcknowledgementPDF } from '../services/pdfService.js';
 
 /**
  * Asynchronously processes AI classification, image vision analysis,
@@ -140,7 +141,19 @@ const parseLocation = (rawLocation, body) => {
  */
 export const createComplaint = async (req, res, next) => {
   try {
-    const { title, description, district, category, urgency } = req.body;
+    const {
+      title,
+      description,
+      district,
+      districtCode,
+      state,
+      stateCode,
+      city,
+      cityCode,
+      pincode,
+      category,
+      urgency
+    } = req.body;
 
     if (!title || !description || !district) {
       return res.status(400).json({
@@ -150,6 +163,10 @@ export const createComplaint = async (req, res, next) => {
     }
 
     const parsedLocation = parseLocation(req.body.location, req.body);
+
+    const acknowledgementNumber =
+      req.body.acknowledgementNumber ||
+      `SS-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const mediaUrls = [];
     if (req.files && Array.isArray(req.files) && req.files.length > 0) {
@@ -193,6 +210,13 @@ export const createComplaint = async (req, res, next) => {
       title: title.trim(),
       description: description.trim(),
       district: district.trim(),
+      districtCode: districtCode ? districtCode.trim() : '',
+      state: state ? state.trim() : '',
+      stateCode: stateCode ? stateCode.trim() : '',
+      city: city ? city.trim() : '',
+      cityCode: cityCode ? cityCode.trim() : '',
+      pincode: pincode ? pincode.trim() : '',
+      acknowledgementNumber,
       location: parsedLocation,
       mediaUrls,
       imageGps: fraudCheck.imageGps,
@@ -214,6 +238,8 @@ export const createComplaint = async (req, res, next) => {
 
     // Return created complaint with HTTP 201 immediately
     return res.status(201).json({
+      success: true,
+      complaintId: complaint._id,
       ...complaintObj,
       complaint: complaintObj
     });
@@ -302,14 +328,14 @@ export const getComplaintById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid complaint ID format.'
-      });
+    let query;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      query = { $or: [{ _id: id }, { acknowledgementNumber: id }] };
+    } else {
+      query = { acknowledgementNumber: id };
     }
 
-    const complaint = await Complaint.findById(id)
+    const complaint = await Complaint.findOne(query)
       .populate('submittedBy', 'name email role phone organization')
       .populate('assignedUniversity', 'name location contactEmail')
       .populate('duplicateOf', 'title status');
@@ -438,11 +464,49 @@ export const updateComplaintStatus = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/complaints/:id/pdf
+ * Public/Citizen PDF download endpoint
+ */
+export const downloadComplaintPDF = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    let query;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      query = { $or: [{ _id: id }, { acknowledgementNumber: id }] };
+    } else {
+      query = { acknowledgementNumber: id };
+    }
+
+    const complaint = await Complaint.findOne(query)
+      .populate('submittedBy', 'name email role phone');
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: 'Grievance not found.'
+      });
+    }
+
+    const complaintObj = complaint.toObject();
+    const ackNo = complaintObj.acknowledgementNumber || complaintObj._id;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=Samadhan_Setu_Acknowledgement_${ackNo}.pdf`);
+
+    generateAcknowledgementPDF(complaintObj, res);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   createComplaint,
   getComplaints,
   getComplaintById,
   getComplaintDuplicates,
   updateComplaintStatus,
+  downloadComplaintPDF,
   runAiPipeline
 };

@@ -1,0 +1,20 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="50" cy="50" r="48" fill="#FFFFFF" stroke="#D9E4ED" stroke-width="2"/>
+  <!-- Center Figure -->
+  <circle cx="50" cy="22" r="6.5" fill="#123B68" />
+  <path d="M39 42 C39 33, 61 33, 61 42" stroke="#123B68" stroke-width="4" stroke-linecap="round" />
+  <!-- Left Figure -->
+  <circle cx="26" cy="32" r="5.5" fill="#2878B8" />
+  <path d="M17 50 C19 42, 33 41, 36 49" stroke="#2878B8" stroke-width="3.5" stroke-linecap="round" />
+  <!-- Right Figure -->
+  <circle cx="74" cy="32" r="5.5" fill="#2878B8" />
+  <path d="M64 49 C67 41, 81 42, 83 50" stroke="#2878B8" stroke-width="3.5" stroke-linecap="round" />
+  <!-- Connecting bridge arms -->
+  <path d="M26 48 C37 42, 63 42, 74 48" stroke="#123B68" stroke-width="2.5" stroke-linecap="round" />
+  <!-- Setu Arch Primary Navy -->
+  <path d="M18 62 C34 53, 66 53, 82 62 C74 70, 48 73, 18 62 Z" fill="#123B68" />
+  <!-- Vibrant Orange Foundation Setu -->
+  <path d="M22 68 C38 60, 62 60, 78 68 C71 77, 43 80, 22 68 Z" fill="#F58220" />
+  <!-- Civic Spark Center -->
+  <circle cx="50" cy="48" r="3" fill="#F58220" />
+</svg>

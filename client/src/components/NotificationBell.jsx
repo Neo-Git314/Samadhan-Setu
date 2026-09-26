@@ -12,7 +12,7 @@ export default function NotificationBell() {
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
-    queryFn: () => notificationApi.getAll().then(r => r.data),
+    queryFn: () => notificationApi.getAll({ unreadOnly: 'true' }).then(r => r.data || []),
     refetchInterval: 30000,
     staleTime: 15000,
   });

@@ -4,7 +4,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// Public Government Pages
+// Public Civic Portal Pages
 import LandingPage from './pages/LandingPage';
 import AboutPage from './pages/AboutPage';
 import HowItWorksPage from './pages/HowItWorksPage';
@@ -12,6 +12,9 @@ import ServicesPage from './pages/ServicesPage';
 import ResourcesPage from './pages/ResourcesPage';
 import TrackPage from './pages/TrackPage';
 import AuthPage from './pages/AuthPage';
+import NoticesPage from './pages/NoticesPage';
+import DocumentsPage from './pages/DocumentsPage';
+import ContactPage from './pages/ContactPage';
 
 // Protected Citizen Pages
 import CitizenSubmit from './pages/CitizenSubmit';
@@ -52,32 +55,38 @@ function RoleBasedDashboardRedirect() {
 
 function App() {
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans text-gray-900">
+    <div className="min-h-screen bg-white flex flex-col font-sans text-gray-900 overflow-x-hidden w-full max-w-full">
       <Navbar />
-      <main className="flex-1">
+      <main className="flex-1 w-full max-w-full overflow-x-hidden" id="main-content">
         <Routes>
-          {/* Public Government Pages */}
+          {/* Public Civic Pages */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/how-it-works" element={<HowItWorksPage />} />
           <Route path="/services" element={<ServicesPage />} />
+          <Route path="/services/:id" element={<ServicesPage />} />
+          <Route path="/notices" element={<NoticesPage />} />
+          <Route path="/notices/:id" element={<NoticesPage />} />
+          <Route path="/documents" element={<DocumentsPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/resources" element={<ResourcesPage />} />
           <Route path="/faq" element={<Navigate to="/resources" replace />} />
           <Route path="/track" element={<TrackPage />} />
+          <Route path="/grievance/track" element={<TrackPage />} />
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/login" element={<Navigate to="/auth" replace />} />
-          <Route path="/register" element={<Navigate to="/auth" replace />} />
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="/register" element={<AuthPage />} />
 
           {/* Unified Dashboard Gateway */}
           <Route path="/dashboard" element={<RoleBasedDashboardRedirect />} />
 
-          {/* Citizen Routes */}
-          <Route path="/submit" element={
-            <ProtectedRoute roles={['citizen', 'admin']}>
-              <CitizenSubmit />
-            </ProtectedRoute>
-          } />
+          {/* Grievance Submission */}
+          <Route path="/submit" element={<CitizenSubmit />} />
+          <Route path="/grievance/new" element={<CitizenSubmit />} />
           <Route path="/report" element={<Navigate to="/submit" replace />} />
+          <Route path="/citizen/submit" element={<Navigate to="/submit" replace />} />
+
+          {/* Citizen Protected Routes */}
           <Route path="/citizen/dashboard" element={
             <ProtectedRoute roles={['citizen', 'admin']}>
               <CitizenDashboard />
@@ -88,10 +97,15 @@ function App() {
               <CitizenComplaints />
             </ProtectedRoute>
           } />
-          <Route path="/citizen/submit" element={<Navigate to="/submit" replace />} />
+          <Route path="/my-complaints" element={
+            <ProtectedRoute roles={['citizen', 'admin']}>
+              <CitizenComplaints />
+            </ProtectedRoute>
+          } />
 
-          {/* Grievance Detail */}
+          {/* Grievance Inspection Detail */}
           <Route path="/complaints/:id" element={<ComplaintDetail />} />
+          <Route path="/grievance/:id" element={<ComplaintDetail />} />
 
           {/* University Routes */}
           <Route path="/university" element={<Navigate to="/university/dashboard" replace />} />
@@ -149,6 +163,16 @@ function App() {
               <AdminComplaints />
             </ProtectedRoute>
           } />
+          <Route path="/admin/grievances" element={
+            <ProtectedRoute roles={['admin']}>
+              <AdminComplaints />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/grievances/:id" element={
+            <ProtectedRoute roles={['admin']}>
+              <ComplaintDetail />
+            </ProtectedRoute>
+          } />
           <Route path="/admin/hotspots" element={
             <ProtectedRoute roles={['admin']}>
               <AdminDashboard />
@@ -157,6 +181,21 @@ function App() {
           <Route path="/admin/analytics" element={
             <ProtectedRoute roles={['admin']}>
               <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/universities" element={
+            <ProtectedRoute roles={['admin']}>
+              <UniversityProfile />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/industry" element={
+            <ProtectedRoute roles={['admin']}>
+              <IndustryProfile />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/industry-partners" element={
+            <ProtectedRoute roles={['admin']}>
+              <IndustryProfile />
             </ProtectedRoute>
           } />
 

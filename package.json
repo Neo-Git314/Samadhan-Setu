@@ -1,0 +1,17 @@
+{
+  "name": "samadhan-setu",
+  "version": "1.0.0",
+  "description": "SAMADHAN SETU - National Civic Grievance & Collaborative Problem Solving Platform (SIH 2026 Problem 26043)",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "seed": "npm run seed --prefix server",
+    "test:ai": "npm run test:ai --prefix server",
+    "build:client": "npm run build --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.4"
+  }
+}

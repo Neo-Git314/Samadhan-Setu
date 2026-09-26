@@ -32,6 +32,14 @@ export function AuthProvider({ children }) {
     setUser(userData);
   }, []);
 
+  const register = useCallback((userData, jwt) => {
+    if (jwt) {
+      localStorage.setItem('ss_token', jwt);
+      setToken(jwt);
+    }
+    setUser(userData);
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem('ss_token');
     setToken(null);
@@ -43,10 +51,11 @@ export function AuthProvider({ children }) {
     token,
     loading,
     login,
+    register,
     logout,
     isAuthenticated: !!user,
     role: user?.role || null,
-  }), [user, token, loading, login, logout]);
+  }), [user, token, loading, login, register, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

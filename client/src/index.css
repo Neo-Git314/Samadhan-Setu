@@ -7,16 +7,28 @@
    ============================================================ */
 
 :root {
-  --navy-950: #0B192C;
-  --navy-900: #0F2C59;
-  --navy-800: #1E3E62;
-  --navy-700: #2a3c8a;
-  --saffron: #E65100;
-  --saffron-light: #FF8F00;
+  --portal-navy: #123B67;
+  --portal-blue: #2F6FA8;
+  --portal-light-blue: #EEF5FA;
+  --portal-soft-bg: #F5F9FC;
+  --portal-text: #17324D;
+  --portal-muted: #60758A;
+  --portal-border: #D9E4ED;
+  --portal-orange: #F58220;
+  
+  --navy-950: #0B2440;
+  --navy-900: #0E2845;
+  --navy-800: #123B67;
+  --navy-700: #194276;
+  --gov-blue: #2F6FA8;
+  --saffron: #F58220;
+  --saffron-hover: #E06D0C;
   --civic-green: #2E7D32;
   --civic-green-light: #4CAF50;
-  --slate-border: #E2E8F0;
-  --off-white: #F8F9FA;
+  --gov-border: #D9E4ED;
+  --gov-bg: #FFFFFF;
+  --gov-text: #17324D;
+  --gov-muted: #60758A;
 }
 
 * {
@@ -26,15 +38,27 @@
 html {
   scroll-behavior: smooth;
   font-size: 16px;
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
 }
 
 body {
   font-family: 'Inter', 'Noto Sans', system-ui, -apple-system, sans-serif;
-  background-color: var(--off-white);
-  color: #1a202c;
-  line-height: 1.6;
+  background-color: var(--gov-bg);
+  color: var(--gov-text);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
+#root {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
 }
 
 /* Indian tricolor accent bar at very top */
@@ -142,4 +166,82 @@ a, button, input, select, textarea {
 @keyframes skeleton-loading {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* Accessibility: Skip to Main Content */
+.skip-to-content {
+  position: absolute;
+  top: -100px;
+  left: 1rem;
+  background: #0B192C;
+  color: #FFFFFF;
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  z-index: 9999;
+  border: 2px solid #FF8F00;
+  border-radius: 0 0 4px 4px;
+  transition: top 0.2s ease;
+}
+.skip-to-content:focus {
+  top: 0;
+  outline: none;
+}
+
+/* High Contrast Mode */
+html.high-contrast {
+  filter: contrast(115%);
+}
+
+html.high-contrast body {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+}
+
+html.high-contrast header,
+html.high-contrast footer,
+html.high-contrast .bg-white,
+html.high-contrast .bg-gray-50,
+html.high-contrast .bg-navy-900,
+html.high-contrast .bg-navy-950 {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+  border-color: #FFFF00 !important;
+}
+
+html.high-contrast a,
+html.high-contrast button {
+  color: #FFFF00 !important;
+}
+
+html.high-contrast .text-gray-400,
+html.high-contrast .text-gray-500,
+html.high-contrast .text-gray-600,
+html.high-contrast .text-gray-700,
+html.high-contrast .text-navy-900,
+html.high-contrast .text-navy-950 {
+  color: #FFFFFF !important;
+}
+
+html.high-contrast input,
+html.high-contrast select,
+html.high-contrast textarea {
+  background-color: #121212 !important;
+  color: #FFFF00 !important;
+  border: 2px solid #FFFF00 !important;
+}
+
+/* Print styles for official grievance receipt acknowledgement */
+@media print {
+  header, footer, nav, .no-print {
+    display: none !important;
+  }
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    font-size: 12pt;
+  }
+  .print-only {
+    display: block !important;
+  }
 }

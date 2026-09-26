@@ -54,6 +54,6 @@ export const analyticsApi = {
 
 // ── Notifications ─────────────────────────────────────────────
 export const notificationApi = {
-  getAll: () => api.get('/notifications'),
+  getAll: (params) => api.get('/notifications', { params }),
   markRead: (id) => api.patch(`/notifications/${id}/read`),
 };

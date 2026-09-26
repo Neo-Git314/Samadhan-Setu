@@ -18,6 +18,21 @@ export default function LocationPicker({ value, onChange }) {
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState('');
 
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        return data.display_name || '';
+      }
+    } catch (err) {
+      console.warn('Reverse geocoding error:', err);
+    }
+    return '';
+  };
+
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
@@ -37,14 +52,17 @@ export default function LocationPicker({ value, onChange }) {
       markerRef.current = L.marker([value.lat, value.lng]).addTo(map);
     }
 
-    map.on('click', (e) => {
+    map.on('click', async (e) => {
       const { lat, lng } = e.latlng;
       if (markerRef.current) {
         markerRef.current.setLatLng([lat, lng]);
       } else {
         markerRef.current = L.marker([lat, lng]).addTo(map);
       }
-      onChange({ lat: parseFloat(lat.toFixed(6)), lng: parseFloat(lng.toFixed(6)) });
+      const latFixed = parseFloat(lat.toFixed(6));
+      const lngFixed = parseFloat(lng.toFixed(6));
+      const address = await reverseGeocode(latFixed, lngFixed);
+      onChange({ lat: latFixed, lng: lngFixed, address });
     });
 
     mapInstanceRef.current = map;
@@ -60,7 +78,7 @@ export default function LocationPicker({ value, onChange }) {
     setLocating(true);
     setGeoError('');
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
         const map = mapInstanceRef.current;
         if (map) {
@@ -71,7 +89,10 @@ export default function LocationPicker({ value, onChange }) {
             markerRef.current = L.marker([lat, lng]).addTo(map);
           }
         }
-        onChange({ lat: parseFloat(lat.toFixed(6)), lng: parseFloat(lng.toFixed(6)) });
+        const latFixed = parseFloat(lat.toFixed(6));
+        const lngFixed = parseFloat(lng.toFixed(6));
+        const address = await reverseGeocode(latFixed, lngFixed);
+        onChange({ lat: latFixed, lng: lngFixed, address });
         setLocating(false);
       },
       (err) => {
@@ -103,6 +124,12 @@ export default function LocationPicker({ value, onChange }) {
           <span className="flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded font-mono">
             <MapPin size={11} className="text-red-500" />
             {value.lat.toFixed(5)}, {value.lng.toFixed(5)}
+          </span>
+        )}
+
+        {value?.address && (
+          <span className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded truncate max-w-md" title={value.address}>
+            📍 {value.address}
           </span>
         )}
 
