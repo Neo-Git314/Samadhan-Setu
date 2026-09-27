@@ -7,7 +7,8 @@ import {
   addCitizenClarification,
   addCitizenFeedback,
   reopenGrievance,
-  getLocalGrievances
+  getLocalGrievances,
+  getCitizenLocalGrievances
 } from '../services/civicData';
 import { downloadGrievancePDF, printGrievancePDF } from '../services/pdfService';
 import SamadhanLogo from '../components/SamadhanLogo';
@@ -33,7 +34,7 @@ export default function TrackPage() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const [inputQuery, setInputQuery] = useState(urlId || 'GRV-2026-10482');
+  const [inputQuery, setInputQuery] = useState(urlId || '');
   const [contactQuery, setContactQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [grievance, setGrievance] = useState(null);
@@ -52,21 +53,26 @@ export default function TrackPage() {
 
   const [actionSuccess, setActionSuccess] = useState('');
 
-  // Perform search on mount if url query param exists
+  // Perform search on mount if url query param exists or if user has submitted complaints
   useEffect(() => {
     if (urlId) {
       setInputQuery(urlId);
       performSearch(urlId);
-    } else {
-      // Default initial showcase with seed complaint
-      performSearch('GRV-2026-10482');
+    } else if (user) {
+      const myLocal = user.role === 'admin' ? getLocalGrievances() : getCitizenLocalGrievances(user);
+      if (myLocal.length > 0) {
+        setInputQuery(myLocal[0].id);
+        performSearch(myLocal[0].id);
+      } else {
+        setGrievance(null);
+      }
     }
-  }, [urlId]);
+  }, [urlId, user]);
 
   const performSearch = async (queryToSearch) => {
     const q = (queryToSearch || inputQuery).trim();
     if (!q) {
-      setSearchError('Please provide a Grievance ID, mobile number, or email.');
+      setSearchError('Please provide a Grievance ID.');
       return;
     }
 
@@ -74,8 +80,8 @@ export default function TrackPage() {
     setActionSuccess('');
     setLoading(true);
 
-    // 1. Check local synchronized store
-    let found = findGrievance(q);
+    // 1. Check local synchronized store strictly restricted to citizen
+    let found = findGrievance(q, user);
 
     // 2. If not found locally, attempt API lookup
     if (!found) {
@@ -83,6 +89,22 @@ export default function TrackPage() {
         const res = await complaintApi.getById(q);
         const backendComplaint = res.data?.complaint || res.data;
         if (backendComplaint) {
+          // If citizen, verify ownership
+          if (user?.role === 'citizen') {
+            const userId = user._id || user.id;
+            const userEmail = user.email?.toLowerCase().trim();
+            const ownerId = backendComplaint.submittedBy?._id || backendComplaint.submittedBy;
+            const ownerEmail = backendComplaint.submittedBy?.email?.toLowerCase().trim();
+            const isMatch = (userId && ownerId && userId.toString() === ownerId.toString()) ||
+                            (userEmail && ownerEmail && userEmail === ownerEmail);
+            if (!isMatch) {
+              setLoading(false);
+              setGrievance(null);
+              setSearchError('Access Restricted: You are only authorized to track grievances registered by your account.');
+              return;
+            }
+          }
+
           const ackNum = backendComplaint.acknowledgementNumber || backendComplaint._id;
           found = {
             id: ackNum,
@@ -114,7 +136,12 @@ export default function TrackPage() {
           };
         }
       } catch (e) {
-        // Not found on backend
+        if (e.response?.status === 403) {
+          setLoading(false);
+          setGrievance(null);
+          setSearchError('Access Restricted: You are only authorized to track grievances registered by your account.');
+          return;
+        }
       }
     }
 
@@ -237,14 +264,16 @@ export default function TrackPage() {
                   <span>{loading ? 'Searching...' : 'Track Status'}</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => { performSearch('GRV-2026-10482'); }}
-                  className="py-2.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded border border-gray-300"
-                  title="Load Sample Demo Grievance"
-                >
-                  Demo
-                </button>
+                {user?.role === 'admin' && (
+                  <button
+                    type="button"
+                    onClick={() => { performSearch('GRV-2026-10482'); }}
+                    className="py-2.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded border border-gray-300"
+                    title="Load Sample Demo Grievance"
+                  >
+                    Demo
+                  </button>
+                )}
               </div>
             </div>
 
@@ -262,6 +291,33 @@ export default function TrackPage() {
           <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs rounded flex items-center gap-2 font-medium animate-fade-in">
             <CheckCircle2 size={16} className="flex-shrink-0 text-emerald-600" />
             <span>{actionSuccess}</span>
+          </div>
+        )}
+
+        {/* Empty state when no grievance loaded */}
+        {!grievance && !loading && (
+          <div className="bg-white rounded border border-gray-300 p-8 text-center shadow-sm space-y-3">
+            <div className="w-12 h-12 rounded-full bg-blue-50 text-[#123B68] flex items-center justify-center mx-auto">
+              <Search size={22} />
+            </div>
+            <h3 className="font-bold text-sm text-navy-950">Grievance Status Tracker</h3>
+            <p className="text-xs text-gray-500 max-w-md mx-auto">
+              Enter your official Grievance Reference ID above to view live timeline progression, responsible officers, and resolution updates.
+            </p>
+            <div className="pt-2 flex items-center justify-center gap-3">
+              <Link
+                to="/citizen/dashboard"
+                className="px-4 py-2 bg-navy-900 hover:bg-navy-800 text-white font-bold text-xs rounded transition-colors"
+              >
+                View My Dashboard
+              </Link>
+              <Link
+                to="/submit"
+                className="px-4 py-2 bg-saffron-600 hover:bg-saffron-700 text-white font-bold text-xs rounded transition-colors"
+              >
+                Register a Grievance
+              </Link>
+            </div>
           </div>
         )}
 

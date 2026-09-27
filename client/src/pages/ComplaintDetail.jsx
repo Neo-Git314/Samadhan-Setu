@@ -1,15 +1,17 @@
 import React, { useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { complaintApi } from '../api/endpoints';
+import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorState from '../components/ErrorState';
 import { downloadGrievancePDF, printGrievancePDF } from '../services/pdfService';
+import { findGrievance } from '../services/civicData';
 import {
   ArrowLeft, MapPin, Calendar, User, Tag, Image as ImgIcon,
   AlertTriangle, Shield, Copy, ExternalLink, GitBranch,
-  Download, Printer
+  Download, Printer, Lock
 } from 'lucide-react';
 
 let L;
@@ -45,11 +47,60 @@ function Timeline({ status }) {
 export default function ComplaintDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const mapRef = useRef(null);
 
-  const { data: complaint, isLoading, isError, refetch } = useQuery({
+  const { data: complaint, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['complaint', id],
-    queryFn: () => complaintApi.getById(id).then(r => r.data?.complaint || r.data),
+    queryFn: async () => {
+      try {
+        const r = await complaintApi.getById(id);
+        return r.data?.complaint || r.data;
+      } catch (err) {
+        if (err.response?.status === 403) throw err;
+        const local = findGrievance(id);
+        if (local) {
+          if (user?.role === 'citizen') {
+            const userId = user._id || user.id;
+            const userEmail = user.email?.toLowerCase().trim();
+            const ownerId = local.citizenId || local.submittedBy;
+            const ownerEmail = local.citizenEmail?.toLowerCase().trim();
+            const isMatch = (userId && ownerId && userId.toString() === ownerId.toString()) ||
+                            (userEmail && ownerEmail && userEmail === ownerEmail);
+            if (!isMatch) {
+              const forbiddenErr = new Error('Access denied');
+              forbiddenErr.response = { status: 403 };
+              throw forbiddenErr;
+            }
+          }
+          return {
+            _id: local.id,
+            acknowledgementNumber: local.id,
+            title: local.subject || local.title,
+            description: local.description,
+            category: local.category,
+            status: local.status,
+            urgency: local.priority || 'medium',
+            createdAt: local.createdAt,
+            updatedAt: local.updatedAt,
+            submittedBy: {
+              _id: local.citizenId || user?._id || user?.id,
+              name: local.citizenName || user?.name,
+              email: local.citizenEmail || user?.email,
+              phone: local.citizenMobile || user?.phone
+            },
+            address: local.location,
+            city: local.city,
+            district: local.district,
+            state: local.state,
+            pincode: local.pincode,
+            timeline: local.timeline,
+            attachments: local.attachments || []
+          };
+        }
+        throw err;
+      }
+    },
     enabled: !!id,
   });
 
@@ -68,7 +119,65 @@ export default function ComplaintDetail() {
   }, [complaint]);
 
   if (isLoading) return <LoadingSpinner message="Loading complaint details…" />;
+
+  // 403 Forbidden or owner check failure
+  const isForbidden = error?.response?.status === 403;
+  if (isForbidden) {
+    return (
+      <div className="min-h-[calc(100vh-110px)] bg-gray-50 py-12 px-4 flex items-center justify-center font-sans">
+        <div className="max-w-md w-full bg-white rounded border border-red-200 p-8 text-center shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-red-100 text-red-700 flex items-center justify-center mx-auto mb-3">
+            <Lock size={24} />
+          </div>
+          <h2 className="text-lg font-bold text-red-800 mb-2">Access Restricted</h2>
+          <p className="text-xs text-gray-600 mb-5 leading-relaxed">
+            As a citizen, you are only authorized to view details of grievances that you registered yourself. You cannot view another citizen's records.
+          </p>
+          <Link
+            to="/citizen/dashboard"
+            className="inline-block px-5 py-2 bg-[#123B68] text-white text-xs font-bold rounded hover:bg-[#0B2440] transition-colors"
+          >
+            Return to My Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (isError || !complaint) return <ErrorState onRetry={refetch} message="Could not load this complaint." />;
+
+  // Client-side owner verification for citizen role
+  if (user?.role === 'citizen') {
+    const userId = user._id || user.id;
+    const userEmail = user.email?.toLowerCase().trim();
+    const ownerId = complaint.submittedBy?._id || complaint.submittedBy || complaint.citizenId;
+    const ownerEmail = (complaint.submittedBy?.email || complaint.citizenEmail)?.toLowerCase().trim();
+
+    const isMatch = (userId && ownerId && userId.toString() === ownerId.toString()) ||
+                    (userEmail && ownerEmail && userEmail === ownerEmail);
+
+    if (!isMatch) {
+      return (
+        <div className="min-h-[calc(100vh-110px)] bg-gray-50 py-12 px-4 flex items-center justify-center font-sans">
+          <div className="max-w-md w-full bg-white rounded border border-red-200 p-8 text-center shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-red-100 text-red-700 flex items-center justify-center mx-auto mb-3">
+              <Lock size={24} />
+            </div>
+            <h2 className="text-lg font-bold text-red-800 mb-2">Access Restricted</h2>
+            <p className="text-xs text-gray-600 mb-5 leading-relaxed">
+              You are not authorized to view this grievance because it belongs to another citizen.
+            </p>
+            <Link
+              to="/citizen/dashboard"
+              className="inline-block px-5 py-2 bg-[#123B68] text-white text-xs font-bold rounded hover:bg-[#0B2440] transition-colors"
+            >
+              Return to My Dashboard
+            </Link>
+          </div>
+        </div>
+      );
+    }
+  }
 
   const c = complaint;
 
@@ -250,34 +359,60 @@ export default function ComplaintDetail() {
               </div>
             )}
 
-            {/* AI Classification */}
-            {c.aiClassification && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">AI Classification</h3>
-                <div className="space-y-2">
-                  {c.aiClassification.category && (
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Category</span>
-                      <span className="font-medium">{c.aiClassification.category}</span>
-                    </div>
-                  )}
-                  {c.aiClassification.urgency && (
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Urgency</span>
-                      <span className={`font-medium ${c.aiClassification.urgency === 'high' ? 'text-red-600' : c.aiClassification.urgency === 'medium' ? 'text-amber-600' : 'text-green-600'}`}>
-                        {c.aiClassification.urgency.charAt(0).toUpperCase() + c.aiClassification.urgency.slice(1)}
-                      </span>
-                    </div>
-                  )}
-                  {c.aiClassification.confidence && (
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Confidence</span>
-                      <span className="font-medium">{(c.aiClassification.confidence * 100).toFixed(0)}%</span>
-                    </div>
-                  )}
-                </div>
+            {/* AI Screening & Innovation Potential (SIH 26043) */}
+            <div className="bg-white rounded-xl border border-[#D9E4ED] shadow-sm p-4 space-y-3">
+              <h3 className="text-xs font-bold text-[#123B68] uppercase tracking-wide flex items-center justify-between">
+                <span>AI Screening Evaluation</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
+                  c.screeningClassification === 'validated_societal_challenge'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : c.screeningClassification === 'routine_service_issue'
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {c.screeningClassification === 'validated_societal_challenge'
+                    ? 'Validated Challenge'
+                    : c.screeningClassification === 'routine_service_issue'
+                    ? 'Routine Issue'
+                    : 'Under Review'}
+                </span>
+              </h3>
+
+              <div className="space-y-2 text-xs">
+                {c.researchDomain && (
+                  <div className="flex justify-between border-b border-gray-100 pb-1.5">
+                    <span className="text-gray-500">Research Domain</span>
+                    <span className="font-semibold text-gray-800">{c.researchDomain}</span>
+                  </div>
+                )}
+                {c.innovationPotential && (
+                  <div className="flex justify-between border-b border-gray-100 pb-1.5">
+                    <span className="text-gray-500">Innovation Potential</span>
+                    <span className="font-bold text-[#F58220] uppercase">{c.innovationPotential}</span>
+                  </div>
+                )}
+                {c.prioritizationScore && (
+                  <div className="flex justify-between border-b border-gray-100 pb-1.5">
+                    <span className="text-gray-500">Prioritization Score</span>
+                    <span className="font-bold text-[#123B68]">{c.prioritizationScore}/100</span>
+                  </div>
+                )}
               </div>
-            )}
+
+              {c.screeningReason && (
+                <p className="text-[11px] text-gray-600 bg-gray-50 p-2 rounded border border-gray-200 leading-relaxed">
+                  <strong className="text-gray-800">Assessment: </strong>
+                  {c.screeningReason}
+                </p>
+              )}
+
+              {c.screeningClassification === 'routine_service_issue' && (
+                <div className="p-2.5 bg-amber-50 border border-amber-200 rounded text-[11px] text-amber-900 leading-relaxed">
+                  <strong>Local Maintenance Notice: </strong>
+                  {c.citizenGuidance || 'Not suitable for innovation challenge pipeline. Please contact local municipal services.'}
+                </div>
+              )}
+            </div>
 
             {/* Related Project */}
             {c.assignedProject && (

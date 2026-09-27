@@ -11,12 +11,12 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-2 text-xs text-saffron-400 uppercase tracking-widest font-semibold mb-2">
             <span>Official Portal Information</span>
-            <span>·</span>
-            <span>SIH 2026 Initiative</span>
+            <span>&bull;</span>
+            <span>SIH 26043 Problem Statement</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">About Samadhan Setu</h1>
           <p className="text-sm sm:text-base text-gray-300 max-w-3xl mt-2 leading-relaxed">
-            A digital bridge connecting citizen civic grievances to university research institutions and corporate CSR capabilities for sustainable municipal problem-solving.
+            A Societal Innovation Collaboration Portal crowdsourcing community challenges and connecting them with universities, industry partners, and government stakeholders for deployable research and technology solutions.
           </p>
         </div>
       </div>

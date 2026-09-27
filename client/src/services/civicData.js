@@ -367,6 +367,36 @@ export function getLocalGrievances() {
   }
 }
 
+/**
+ * Filter grievances strictly by authenticated citizen to guarantee privacy & data isolation
+ */
+export function getCitizenLocalGrievances(user) {
+  const all = getLocalGrievances();
+  if (!user) return [];
+  const userId = user._id || user.id;
+  const userEmail = user.email?.toLowerCase().trim();
+  const userPhone = user.phone ? user.phone.replace(/[^0-9]/g, '') : '';
+
+  return all.filter(g => {
+    // Match by user ID
+    if (userId && (g.citizenId === userId || g.submittedBy === userId || g.submittedBy?._id === userId)) {
+      return true;
+    }
+    // Match by email
+    if (userEmail && g.citizenEmail && g.citizenEmail.toLowerCase().trim() === userEmail) {
+      return true;
+    }
+    // Match by registered phone (at least 10 digits match)
+    if (userPhone && userPhone.length >= 10 && g.citizenMobile) {
+      const gPhone = g.citizenMobile.replace(/[^0-9]/g, '');
+      if (gPhone && (gPhone.includes(userPhone) || userPhone.includes(gPhone))) {
+        return true;
+      }
+    }
+    return false;
+  });
+}
+
 export function saveLocalGrievance(newGrievance) {
   const all = getLocalGrievances();
   const updated = [newGrievance, ...all.filter(g => g.id !== newGrievance.id)];
@@ -374,10 +404,10 @@ export function saveLocalGrievance(newGrievance) {
   return newGrievance;
 }
 
-export function findGrievance(idOrQuery) {
+export function findGrievance(idOrQuery, user = null) {
   if (!idOrQuery) return null;
   const clean = idOrQuery.trim().toLowerCase();
-  const all = getLocalGrievances();
+  const all = user && user.role === 'citizen' ? getCitizenLocalGrievances(user) : getLocalGrievances();
   return all.find(g => 
     g.id.toLowerCase() === clean || 
     g.id.toLowerCase().replace(/[^a-z0-9]/g, '') === clean.replace(/[^a-z0-9]/g, '') ||

@@ -145,6 +145,36 @@ const complaintSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'University',
       default: null
+    },
+    screeningClassification: {
+      type: String,
+      enum: ['validated_societal_challenge', 'routine_service_issue', 'needs_expert_review'],
+      default: 'needs_expert_review'
+    },
+    screeningConfidence: {
+      type: Number,
+      default: 0
+    },
+    screeningReason: {
+      type: String,
+      default: ''
+    },
+    innovationPotential: {
+      type: String,
+      enum: ['high', 'medium', 'low', 'none'],
+      default: 'medium'
+    },
+    researchDomain: {
+      type: String,
+      default: ''
+    },
+    prioritizationScore: {
+      type: Number,
+      default: 50
+    },
+    citizenGuidance: {
+      type: String,
+      default: ''
     }
   },
   {
@@ -178,6 +208,7 @@ complaintSchema.index({ createdAt: -1 });
 complaintSchema.index({ submittedBy: 1 });
 complaintSchema.index({ assignedUniversity: 1 });
 complaintSchema.index({ duplicateOf: 1 });
+complaintSchema.index({ screeningClassification: 1 });
 
 const Complaint = mongoose.model('Complaint', complaintSchema);
 

@@ -71,8 +71,16 @@ function App() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/resources" element={<ResourcesPage />} />
           <Route path="/faq" element={<Navigate to="/resources" replace />} />
-          <Route path="/track" element={<TrackPage />} />
-          <Route path="/grievance/track" element={<TrackPage />} />
+          <Route path="/track" element={
+            <ProtectedRoute roles={['citizen', 'admin']} message="Please login to track your grievances." redirectFrom="/citizen/dashboard">
+              <TrackPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/grievance/track" element={
+            <ProtectedRoute roles={['citizen', 'admin']} message="Please login to track your grievances." redirectFrom="/citizen/dashboard">
+              <TrackPage />
+            </ProtectedRoute>
+          } />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/register" element={<AuthPage />} />
@@ -81,31 +89,47 @@ function App() {
           <Route path="/dashboard" element={<RoleBasedDashboardRedirect />} />
 
           {/* Grievance Submission */}
-          <Route path="/submit" element={<CitizenSubmit />} />
-          <Route path="/grievance/new" element={<CitizenSubmit />} />
+          <Route path="/submit" element={
+            <ProtectedRoute roles={['citizen', 'admin']} message="Please login to register a grievance.">
+              <CitizenSubmit />
+            </ProtectedRoute>
+          } />
+          <Route path="/grievance/new" element={
+            <ProtectedRoute roles={['citizen', 'admin']} message="Please login to register a grievance.">
+              <CitizenSubmit />
+            </ProtectedRoute>
+          } />
           <Route path="/report" element={<Navigate to="/submit" replace />} />
           <Route path="/citizen/submit" element={<Navigate to="/submit" replace />} />
 
           {/* Citizen Protected Routes */}
           <Route path="/citizen/dashboard" element={
-            <ProtectedRoute roles={['citizen', 'admin']}>
+            <ProtectedRoute roles={['citizen', 'admin']} message="Please login to access your Citizen Dashboard.">
               <CitizenDashboard />
             </ProtectedRoute>
           } />
           <Route path="/citizen/complaints" element={
-            <ProtectedRoute roles={['citizen', 'admin']}>
+            <ProtectedRoute roles={['citizen', 'admin']} message="Please login to view your grievances.">
               <CitizenComplaints />
             </ProtectedRoute>
           } />
           <Route path="/my-complaints" element={
-            <ProtectedRoute roles={['citizen', 'admin']}>
+            <ProtectedRoute roles={['citizen', 'admin']} message="Please login to view your grievances.">
               <CitizenComplaints />
             </ProtectedRoute>
           } />
 
           {/* Grievance Inspection Detail */}
-          <Route path="/complaints/:id" element={<ComplaintDetail />} />
-          <Route path="/grievance/:id" element={<ComplaintDetail />} />
+          <Route path="/complaints/:id" element={
+            <ProtectedRoute roles={['citizen', 'admin']} message="Please login to view grievance details.">
+              <ComplaintDetail />
+            </ProtectedRoute>
+          } />
+          <Route path="/grievance/:id" element={
+            <ProtectedRoute roles={['citizen', 'admin']} message="Please login to view grievance details.">
+              <ComplaintDetail />
+            </ProtectedRoute>
+          } />
 
           {/* University Routes */}
           <Route path="/university" element={<Navigate to="/university/dashboard" replace />} />

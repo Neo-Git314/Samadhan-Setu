@@ -286,8 +286,197 @@ export const getEmbedding = async (text) => {
   }
 };
 
+/**
+ * 4. Screen societal challenges vs routine municipal maintenance issues (SIH 26043)
+ * Evaluates whether an issue is a systemic societal challenge requiring innovation/R&D
+ * or a routine service issue requiring standard local grievance redressal.
+ * @param {string} title
+ * @param {string} description
+ * @param {string} category
+ * @param {object} location
+ * @param {string} imageCaption
+ * @returns {Promise<{
+ *   classification: 'validated_societal_challenge' | 'routine_service_issue' | 'needs_expert_review',
+ *   confidence: number,
+ *   reason: string,
+ *   innovationPotential: 'high' | 'medium' | 'low' | 'none',
+ *   researchDomain: string,
+ *   prioritizationScore: number,
+ *   citizenGuidance: string
+ * }>}
+ */
+export const screenSocietalChallenge = async ({
+  title = '',
+  description = '',
+  category = '',
+  location = {},
+  imageCaption = ''
+} = {}) => {
+  const combinedText = `${title}. ${description}. Category: ${category}. Image context: ${imageCaption}`.trim();
+
+  const fallback = {
+    classification: 'needs_expert_review',
+    confidence: 0.5,
+    reason: 'Challenge flagged for administrative review and expert validation.',
+    innovationPotential: 'medium',
+    researchDomain: category || 'Societal Innovation',
+    prioritizationScore: 50,
+    citizenGuidance: ''
+  };
+
+  if (!combinedText) {
+    return fallback;
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  const prompt = `System: You are an expert AI innovation screener for "Samadhan Setu" (Societal Innovation Collaboration Portal).
+Your role is to classify citizen-submitted problems into:
+1. "validated_societal_challenge": Systemic, community-wide, recurring, ecological, technological, agricultural, healthcare, or socio-economic challenges that require academic research, R&D, student innovation, technology transfer, prototype engineering, or startup problem solving. (e.g. arsenic/fluoride in groundwater, lack of affordable solar cold-storage for tribal grain, off-grid telemedicine diagnostics, smart flood prediction, endemic crop pest control).
+2. "routine_service_issue": Isolated, standard municipal maintenance or individual civil issues that do not warrant innovation research (e.g. single pothole repair, single fused streetlight bulb, isolated handpump washer change, routine garbage bin pickup, individual water bill dispute).
+3. "needs_expert_review": Ambiguous, complex, multi-sector, or insufficiently clear submissions where AI confidence is low.
+
+Evaluate the problem and return ONLY valid JSON:
+{
+  "classification": "validated_societal_challenge" | "routine_service_issue" | "needs_expert_review",
+  "confidence": <float between 0.0 and 1.0>,
+  "reason": "<1-2 clear concise sentences explaining the classification>",
+  "innovationPotential": "high" | "medium" | "low" | "none",
+  "researchDomain": "<Appropriate R&D domain, e.g. Agritech, Water Purification, Renewable Energy, Healthtech, Smart Urban Systems, Rural Engineering>",
+  "prioritizationScore": <integer between 10 and 100 based on community impact, severity, scalability, and innovation need>,
+  "citizenGuidance": "<If routine_service_issue, provide helpful generic guidance on directing to standard municipal channels or local public service portals; otherwise leave empty string ''>"
+}
+
+Submission Title: "${title}"
+Description: "${description}"
+Category: "${category}"
+Location Details: "${location?.address || location?.district || 'Jharkhand'}"
+Vision Context: "${imageCaption}"`;
+
+  if (!apiKey) {
+    console.warn('[aiService] GEMINI_API_KEY not set. Using heuristic challenge screener.');
+    const lower = combinedText.toLowerCase();
+
+    // Routine triggers: single pothole, street light fused, garbage bin, single tap leak
+    const isRoutine =
+      (lower.includes('street light') || lower.includes('streetlight') || lower.includes('bulb') || lower.includes('fused')) &&
+      !lower.includes('solar grid') &&
+      !lower.includes('systemic') &&
+      !lower.includes('village-wide') ||
+      (lower.includes('pothole') && !lower.includes('recurrent erosion') && !lower.includes('soil mechanics')) ||
+      (lower.includes('garbage bin') || lower.includes('dustbin')) ||
+      (lower.includes('broken tap') || lower.includes('washer'));
+
+    // Societal Innovation triggers: systemic, contamination, arsenic, solar storage, telemedicine, crop disease, irrigation, flood, remote, indigenous
+    const isInnovation =
+      lower.includes('arsenic') ||
+      lower.includes('fluoride') ||
+      lower.includes('groundwater') ||
+      lower.includes('cold storage') ||
+      lower.includes('cold-storage') ||
+      lower.includes('telemedicine') ||
+      lower.includes('diagnostic') ||
+      lower.includes('irrigation') ||
+      lower.includes('flood') ||
+      lower.includes('crop disease') ||
+      lower.includes('renewable') ||
+      lower.includes('biomass') ||
+      lower.includes('micro-grid') ||
+      lower.includes('tribal') ||
+      lower.includes('systemic') ||
+      lower.includes('water purification') ||
+      lower.includes('early warning') ||
+      lower.includes('affordab') ||
+      lower.includes('post-harvest');
+
+    if (isRoutine && !isInnovation) {
+      return {
+        classification: 'routine_service_issue',
+        confidence: 0.88,
+        reason: 'This submission relates to localized municipal maintenance rather than a systemic challenge requiring academic R&D or technology innovation.',
+        innovationPotential: 'none',
+        researchDomain: 'Municipal Operations',
+        prioritizationScore: 25,
+        citizenGuidance: 'This item is not suitable for the societal innovation challenge pipeline. For localized civic repairs, please register a ticket with your local municipal corporation, district portal, or relevant public service desk.'
+      };
+    }
+
+    if (isInnovation) {
+      let domain = 'Societal Innovation';
+      if (lower.includes('water') || lower.includes('arsenic') || lower.includes('purification')) domain = 'Water & Environmental Engineering';
+      else if (lower.includes('cold') || lower.includes('crop') || lower.includes('harvest') || lower.includes('irrigation')) domain = 'Agritech & Post-Harvest Systems';
+      else if (lower.includes('telemedicine') || lower.includes('diagnostic') || lower.includes('health')) domain = 'Healthtech & Remote Diagnostics';
+      else if (lower.includes('flood') || lower.includes('sensor') || lower.includes('urban')) domain = 'Smart Infrastructure & Disaster Tech';
+      else if (lower.includes('solar') || lower.includes('energy') || lower.includes('biomass')) domain = 'Renewable & Distributed Energy';
+
+      return {
+        classification: 'validated_societal_challenge',
+        confidence: 0.92,
+        reason: 'Identified as a systemic community problem with strong potential for applied research, university prototyping, and industry solution co-creation.',
+        innovationPotential: 'high',
+        researchDomain: domain,
+        prioritizationScore: 85,
+        citizenGuidance: ''
+      };
+    }
+
+    return {
+      classification: 'needs_expert_review',
+      confidence: 0.65,
+      reason: 'Queued for committee review to assess innovation scope, research feasibility, and interdisciplinary problem matching.',
+      innovationPotential: 'medium',
+      researchDomain: category || 'Interdisciplinary R&D',
+      prioritizationScore: 60,
+      citizenGuidance: ''
+    };
+  }
+
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const response = await axios.post(
+      url,
+      {
+        contents: [
+          {
+            parts: [{ text: prompt }]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: 'application/json'
+        }
+      },
+      { timeout: 12000 }
+    );
+
+    const candidateText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!candidateText) return fallback;
+
+    const cleanedJson = candidateText.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleanedJson);
+
+    const validClassifications = ['validated_societal_challenge', 'routine_service_issue', 'needs_expert_review'];
+    const validInnovation = ['high', 'medium', 'low', 'none'];
+
+    return {
+      classification: validClassifications.includes(parsed.classification) ? parsed.classification : 'needs_expert_review',
+      confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.7,
+      reason: parsed.reason || fallback.reason,
+      innovationPotential: validInnovation.includes(parsed.innovationPotential) ? parsed.innovationPotential : 'medium',
+      researchDomain: parsed.researchDomain || category || 'Societal Innovation',
+      prioritizationScore: typeof parsed.prioritizationScore === 'number' ? Math.min(100, Math.max(10, parsed.prioritizationScore)) : 50,
+      citizenGuidance: parsed.citizenGuidance || ''
+    };
+  } catch (error) {
+    console.error('[aiService] screenSocietalChallenge error:', error.message);
+    return fallback;
+  }
+};
+
 export default {
   classifyComplaint,
   analyzeImage,
-  getEmbedding
+  getEmbedding,
+  screenSocietalChallenge
 };
+

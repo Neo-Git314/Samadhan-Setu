@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-export default function ProtectedRoute({ children, roles }) {
+export default function ProtectedRoute({ children, roles, message, redirectFrom }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -18,7 +18,17 @@ export default function ProtectedRoute({ children, roles }) {
   }
 
   if (!user) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    const target = redirectFrom || location;
+    return (
+      <Navigate
+        to="/auth"
+        state={{
+          from: target,
+          message: message || 'Please login to access this service.'
+        }}
+        replace
+      />
+    );
   }
 
   if (roles && !roles.includes(user.role)) {

@@ -8,7 +8,7 @@ import {
   Menu, X, ChevronDown, LogOut, Search, Building2,
   FileText, Shield, Phone, Download, HelpCircle,
   Eye, Volume2, ArrowRight, LayoutDashboard, Award,
-  Layers, AlertCircle
+  Layers, AlertCircle, Plus
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -135,36 +135,13 @@ export default function Navbar() {
                 SAMADHAN SETU
               </span>
               <span className="text-[#60758A] text-[11px] sm:text-xs font-normal mt-0.5 leading-tight">
-                National Civic Grievance &amp; Collaborative Problem Solving Platform
+                Societal Innovation Collaboration Portal
               </span>
             </div>
           </Link>
 
           {/* CENTER: Clean Horizontal Navigation (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 text-[12px] xl:text-[13px] font-medium text-[#17324D] flex-shrink-0" aria-label="Primary Navigation">
-            {isAuthenticated && user?.role === 'citizen' && (
-              <>
-                <Link
-                  to="/"
-                  className={`px-3 py-1.5 transition-colors ${location.pathname === '/' ? 'text-[#123B67] font-bold border-b-2 border-[#F58220]' : 'hover:text-[#123B67]'}`}
-                >
-                  Home
-                </Link>
-                <Link
-                  to="/submit"
-                  className={`px-3 py-1.5 transition-colors ${location.pathname === '/submit' ? 'text-[#123B67] font-bold border-b-2 border-[#F58220]' : 'hover:text-[#123B67]'}`}
-                >
-                  Report Grievance
-                </Link>
-                <Link
-                  to="/my-complaints"
-                  className={`px-3 py-1.5 transition-colors ${location.pathname === '/my-complaints' || location.pathname === '/citizen/complaints' ? 'text-[#123B67] font-bold border-b-2 border-[#F58220]' : 'hover:text-[#123B67]'}`}
-                >
-                  My Complaints
-                </Link>
-              </>
-            )}
-
+          <nav className="hidden lg:flex items-center gap-1.5 xl:gap-3 text-[12px] xl:text-[13px] font-medium text-[#17324D] flex-shrink-0" aria-label="Primary Navigation">
             {isAuthenticated && user?.role === 'university' && (
               <>
                 <Link
@@ -221,19 +198,19 @@ export default function Navbar() {
                 </Link>
                 <Link
                   to="/admin/industry-partners"
-                  className={`px-3 py-1.5 transition-colors ${location.pathname === '/admin/industry-partners' || location.pathname === '/admin/industry' ? 'text-[#123B67] font-bold border-b-2 border-[#F58220]' : 'hover:text-[#123B67]'}`}
+                  className={`px-3 py-1.5 transition-colors ${location.pathname === '/admin/industry-partners' || location.pathname === '/admin' ? 'text-[#123B67] font-bold border-b-2 border-[#F58220]' : 'hover:text-[#123B67]'}`}
                 >
                   Industry Partners
                 </Link>
               </>
             )}
 
-            {!isAuthenticated && (
+            {(!isAuthenticated || user?.role === 'citizen') && (
               <>
                 {/* Home */}
                 <Link
                   to="/"
-                  className={`px-2.5 py-1.5 transition-colors relative ${
+                  className={`px-3 py-1.5 transition-colors relative ${
                     location.pathname === '/' 
                       ? 'text-[#123B67] font-bold border-b-2 border-[#F58220]' 
                       : 'hover:text-[#123B67]'
@@ -250,7 +227,7 @@ export default function Navbar() {
                 >
                   <button
                     onClick={() => toggleDropdown('about')}
-                    className={`px-2.5 py-1.5 flex items-center gap-1 hover:text-[#123B67] transition-colors focus:outline-none ${
+                    className={`px-3 py-1.5 flex items-center gap-1 hover:text-[#123B67] transition-colors focus:outline-none ${
                       location.pathname.startsWith('/about') || location.pathname.startsWith('/how-it-works') || activeDropdown === 'about'
                         ? 'text-[#123B67] font-bold border-b-2 border-[#F58220]'
                         : ''
@@ -292,7 +269,7 @@ export default function Navbar() {
                 >
                   <button
                     onClick={() => toggleDropdown('services')}
-                    className={`px-2.5 py-1.5 flex items-center gap-1 hover:text-[#123B67] transition-colors focus:outline-none ${
+                    className={`px-3 py-1.5 flex items-center gap-1 hover:text-[#123B67] transition-colors focus:outline-none ${
                       location.pathname.startsWith('/services') || location.pathname.startsWith('/submit') || location.pathname.startsWith('/track') || activeDropdown === 'services'
                         ? 'text-[#123B67] font-bold border-b-2 border-[#F58220]'
                         : ''
@@ -307,59 +284,19 @@ export default function Navbar() {
                       <div className="bg-white rounded-md border border-[#D9E4ED] shadow-xl py-1.5 ring-1 ring-black/5 overflow-hidden">
                         <Link to="/submit" className={dropdownItemClass} onClick={() => setActiveDropdown(null)}>
                           <FileText size={14} className="text-[#F58220] group-hover/item:scale-110 transition-all" />
-                          <span>Report a Grievance</span>
+                          <span>Submit Societal Challenge</span>
                         </Link>
                         <Link to="/track" className={dropdownItemClass} onClick={() => setActiveDropdown(null)}>
                           <Search size={14} className="text-[#2F6FA8] group-hover/item:scale-110 group-hover/item:text-[#123B67] transition-all" />
-                          <span>Track Grievance Status</span>
+                          <span>Track Challenge Status</span>
                         </Link>
                         <Link to="/services" className={dropdownItemClass} onClick={() => setActiveDropdown(null)}>
                           <Layers size={14} className="text-[#2F6FA8] group-hover/item:scale-110 group-hover/item:text-[#123B67] transition-all" />
-                          <span>Citizen Services Directory</span>
+                          <span>Innovation Services Directory</span>
                         </Link>
                         <Link to="/documents" className={dropdownItemClass} onClick={() => setActiveDropdown(null)}>
                           <Download size={14} className="text-[#2F6FA8] group-hover/item:scale-110 group-hover/item:text-[#123B67] transition-all" />
-                          <span>Downloadable Forms</span>
-                        </Link>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Departments */}
-                <div
-                  className="relative group"
-                  onMouseEnter={() => handleMouseEnter('departments')}
-                  onMouseLeave={handleMouseLeave}
-                >
-                  <button
-                    onClick={() => toggleDropdown('departments')}
-                    className={`px-2.5 py-1.5 flex items-center gap-1 hover:text-[#123B67] transition-colors focus:outline-none ${
-                      activeDropdown === 'departments' ? 'text-[#123B67] font-bold border-b-2 border-[#F58220]' : ''
-                    }`}
-                    aria-expanded={activeDropdown === 'departments'}
-                  >
-                    <span>Departments</span>
-                    <ChevronDown size={13} className={`text-[#60758A] transition-transform duration-200 ${activeDropdown === 'departments' ? 'rotate-180 text-[#123B67]' : 'group-hover:text-[#123B67]'}`} />
-                  </button>
-                  {activeDropdown === 'departments' && (
-                    <div className="absolute left-0 top-full pt-1.5 w-64 z-50 animate-fade-in">
-                      <div className="bg-white rounded-md border border-[#D9E4ED] shadow-xl py-1.5 ring-1 ring-black/5 overflow-hidden">
-                        <Link to="/contact#directory" className={dropdownItemClass} onClick={() => setActiveDropdown(null)}>
-                          <Building2 size={14} className="text-[#2F6FA8] group-hover/item:scale-110 group-hover/item:text-[#123B67] transition-all" />
-                          <span>Public Works Department (PWD)</span>
-                        </Link>
-                        <Link to="/contact#directory" className={dropdownItemClass} onClick={() => setActiveDropdown(null)}>
-                          <Building2 size={14} className="text-[#2F6FA8] group-hover/item:scale-110 group-hover/item:text-[#123B67] transition-all" />
-                          <span>Municipal Water Supply</span>
-                        </Link>
-                        <Link to="/contact#directory" className={dropdownItemClass} onClick={() => setActiveDropdown(null)}>
-                          <Building2 size={14} className="text-[#2F6FA8] group-hover/item:scale-110 group-hover/item:text-[#123B67] transition-all" />
-                          <span>Sanitation &amp; Waste Management</span>
-                        </Link>
-                        <Link to="/contact#directory" className={dropdownItemClass} onClick={() => setActiveDropdown(null)}>
-                          <Building2 size={14} className="text-[#2F6FA8] group-hover/item:scale-110 group-hover/item:text-[#123B67] transition-all" />
-                          <span>Electricity &amp; Power</span>
+                          <span>Downloadable Guidelines</span>
                         </Link>
                       </div>
                     </div>
@@ -374,7 +311,7 @@ export default function Navbar() {
                 >
                   <button
                     onClick={() => toggleDropdown('projects')}
-                    className={`px-2.5 py-1.5 flex items-center gap-1 hover:text-[#123B67] transition-colors focus:outline-none ${
+                    className={`px-3 py-1.5 flex items-center gap-1 hover:text-[#123B67] transition-colors focus:outline-none ${
                       location.pathname.startsWith('/projects') || location.pathname.startsWith('/university') || activeDropdown === 'projects'
                         ? 'text-[#123B67] font-bold border-b-2 border-[#F58220]'
                         : ''
@@ -408,7 +345,7 @@ export default function Navbar() {
                 >
                   <button
                     onClick={() => toggleDropdown('resources')}
-                    className={`px-2.5 py-1.5 flex items-center gap-1 hover:text-[#123B67] transition-colors focus:outline-none ${
+                    className={`px-3 py-1.5 flex items-center gap-1 hover:text-[#123B67] transition-colors focus:outline-none ${
                       location.pathname.startsWith('/resources') || location.pathname.startsWith('/notices') || location.pathname.startsWith('/documents') || activeDropdown === 'resources'
                         ? 'text-[#123B67] font-bold border-b-2 border-[#F58220]'
                         : ''
@@ -433,16 +370,6 @@ export default function Navbar() {
                           <Shield size={14} className="text-[#2F6FA8] group-hover/item:scale-110 group-hover/item:text-[#123B67] transition-all" />
                           <span>Citizen Charter</span>
                         </Link>
-                        <button
-                          onClick={() => {
-                            setActiveDropdown(null);
-                            setShowScreenReaderModal(true);
-                          }}
-                          className={dropdownItemClass}
-                        >
-                          <Volume2 size={14} className="text-[#2F6FA8] group-hover/item:scale-110 group-hover/item:text-[#123B67] transition-all" />
-                          <span>Accessibility &amp; Assistive Info</span>
-                        </button>
                       </div>
                     </div>
                   )}
@@ -451,7 +378,7 @@ export default function Navbar() {
                 {/* Contact */}
                 <Link
                   to="/contact"
-                  className={`px-2.5 py-1.5 transition-colors ${
+                  className={`px-3 py-1.5 transition-colors ${
                     location.pathname === '/contact'
                       ? 'text-[#123B67] font-bold border-b-2 border-[#F58220]'
                       : 'hover:text-[#123B67]'
@@ -517,8 +444,8 @@ export default function Navbar() {
                     <div className="w-7 h-7 rounded-full bg-[#123B67] text-white flex items-center justify-center text-xs font-bold">
                       {user?.name ? user.name[0].toUpperCase() : 'U'}
                     </div>
-                    <span className="hidden sm:inline text-xs font-semibold text-[#17324D] max-w-[100px] truncate">
-                      {user?.name || 'Account'}
+                    <span className="hidden sm:inline text-xs font-semibold text-[#17324D] max-w-[120px] truncate">
+                      {user?.role === 'citizen' ? 'My Dashboard' : (user?.name || 'Account')}
                     </span>
                     <ChevronDown size={13} className={`text-[#60758A] transition-transform duration-200 ${activeDropdown === 'user' ? 'rotate-180 text-[#123B67]' : 'group-hover:text-[#123B67]'}`} />
                   </button>
@@ -540,7 +467,7 @@ export default function Navbar() {
                         onClick={() => setActiveDropdown(null)}
                       >
                         <LayoutDashboard size={14} className="text-[#123B67]" />
-                        Dashboard
+                        {user?.role === 'citizen' ? 'Citizen Dashboard' : 'Dashboard'}
                       </Link>
 
                       {user?.role === 'citizen' && (
@@ -550,7 +477,7 @@ export default function Navbar() {
                           onClick={() => setActiveDropdown(null)}
                         >
                           <FileText size={14} className="text-[#123B67]" />
-                          My Grievances
+                          My Submitted Challenges
                         </Link>
                       )}
 
@@ -559,8 +486,8 @@ export default function Navbar() {
                         className={dropdownItemClass}
                         onClick={() => setActiveDropdown(null)}
                       >
-                        <Search size={14} className="text-[#F58220]" />
-                        File New Grievance
+                        <Plus size={14} className="text-[#F58220]" />
+                        Submit Societal Challenge
                       </Link>
 
                       <div className="border-t border-[#D9E4ED] my-1"></div>
@@ -570,7 +497,7 @@ export default function Navbar() {
                         className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2"
                       >
                         <LogOut size={14} />
-                        Sign Out
+                        Logout
                       </button>
                       </div>
                     </div>
@@ -641,21 +568,13 @@ export default function Navbar() {
             </button>
             {mobileSection === 'services' && (
               <div className="pl-4 py-1 space-y-1 bg-[#F5F9FC] rounded">
-                <Link to="/submit" onClick={() => setMobileOpen(false)} className="block py-1.5 text-[#F58220] font-semibold">Report a Grievance</Link>
-                <Link to="/track" onClick={() => setMobileOpen(false)} className="block py-1.5 text-[#60758A] hover:text-[#123B67]">Track Grievance</Link>
+                <Link to="/submit" onClick={() => setMobileOpen(false)} className="block py-1.5 text-[#F58220] font-semibold">Submit Societal Challenge</Link>
+                <Link to="/track" onClick={() => setMobileOpen(false)} className="block py-1.5 text-[#60758A] hover:text-[#123B67]">Track Challenge Status</Link>
                 <Link to="/services" onClick={() => setMobileOpen(false)} className="block py-1.5 text-[#60758A] hover:text-[#123B67]">Services Directory</Link>
-                <Link to="/documents" onClick={() => setMobileOpen(false)} className="block py-1.5 text-[#60758A] hover:text-[#123B67]">Download Forms</Link>
+                <Link to="/documents" onClick={() => setMobileOpen(false)} className="block py-1.5 text-[#60758A] hover:text-[#123B67]">Download Guidelines</Link>
               </div>
             )}
           </div>
-
-          <Link
-            to="/contact#directory"
-            onClick={() => setMobileOpen(false)}
-            className="block py-2 px-3 rounded font-semibold hover:bg-[#EEF5FA]"
-          >
-            Departments
-          </Link>
 
           <Link
             to="/university/challenges"
@@ -710,7 +629,53 @@ export default function Navbar() {
             </div>
           </div>
 
-          {!isAuthenticated && (
+          {isAuthenticated ? (
+            <div className="pt-3 border-t border-[#D9E4ED] space-y-2">
+              <div className="px-3 py-2 bg-[#F5F9FC] rounded border border-[#D9E4ED]">
+                <div className="font-bold text-xs text-[#123B67] truncate">{user?.name}</div>
+                <div className="text-[11px] text-[#60758A] truncate">{user?.email}</div>
+                <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#EEF5FA] text-[#2F6FA8] border border-[#D9E4ED]">
+                  Role: {user?.role}
+                </span>
+              </div>
+              <Link
+                to={getDashboardPath()}
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2 py-2 px-3 rounded font-semibold text-[#123B67] hover:bg-[#EEF5FA]"
+              >
+                <LayoutDashboard size={14} />
+                <span>{user?.role === 'citizen' ? 'Citizen Dashboard' : 'Dashboard'}</span>
+              </Link>
+              {user?.role === 'citizen' && (
+                <Link
+                  to="/citizen/complaints"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-2 py-2 px-3 rounded font-semibold text-[#123B67] hover:bg-[#EEF5FA]"
+                >
+                  <FileText size={14} />
+                  <span>My Grievances</span>
+                </Link>
+              )}
+              <Link
+                to="/submit"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2 py-2 px-3 rounded font-semibold text-[#F58220] hover:bg-[#FFF6ED]"
+              >
+                <Plus size={14} />
+                <span>Register a Grievance</span>
+              </Link>
+              <button
+                onClick={() => {
+                  setMobileOpen(false);
+                  handleLogout();
+                }}
+                className="w-full flex items-center gap-2 py-2 px-3 rounded font-semibold text-red-600 hover:bg-red-50 text-left"
+              >
+                <LogOut size={14} />
+                <span>Logout</span>
+              </button>
+            </div>
+          ) : (
             <div className="pt-3 border-t border-[#D9E4ED] grid grid-cols-2 gap-2">
               <Link
                 to="/auth"

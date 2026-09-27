@@ -7,15 +7,17 @@ export const authApi = {
   getMe: () => api.get('/auth/me'),
 };
 
-// ── Complaints ────────────────────────────────────────────────
+// ── Complaints / Grievances ──────────────────────────────────
 export const complaintApi = {
   create: (formData) => api.post('/complaints', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   getAll: (params) => api.get('/complaints', { params }),
-  getMine: (params) => api.get('/complaints', { params: { submittedBy: 'me', ...params } }),
+  getMine: (params) => api.get('/complaints/my', { params }),
+  getMyGrievances: (params) => api.get('/grievances/my', { params }),
   getById: (id) => api.get(`/complaints/${id}`),
   updateStatus: (id, status) => api.patch(`/complaints/${id}/status`, { status }),
+  triage: (id, data) => api.patch(`/complaints/${id}/triage`, data),
   getDuplicates: (id) => api.get(`/complaints/${id}/duplicates`),
 };
 

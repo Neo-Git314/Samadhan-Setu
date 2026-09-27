@@ -165,6 +165,42 @@ export default function AdminComplaints() {
     setSelectedGrievance(null);
   };
 
+  const handleApproveAsChallenge = async (g) => {
+    try {
+      if (g._id) {
+        await complaintApi.triage(g._id, {
+          screeningClassification: 'validated_societal_challenge',
+          screeningReason: 'Approved by administrator as a validated societal innovation challenge.',
+          innovationPotential: 'high'
+        });
+      }
+      updateGrievanceStatus(g.id, 'reviewed', 'Validated as societal innovation challenge by state administrative committee.');
+      setLocalGrievances(getLocalGrievances());
+      refetch();
+      setActionSuccess(`Challenge ${g.id} validated for university R&D matching.`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to validate challenge.');
+    }
+  };
+
+  const handleMarkAsRoutine = async (g) => {
+    try {
+      if (g._id) {
+        await complaintApi.triage(g._id, {
+          screeningClassification: 'routine_service_issue',
+          screeningReason: 'Classified by administrator as localized routine municipal maintenance.',
+          citizenGuidance: 'This item is not suitable for the societal innovation challenge pipeline. Please refer to local municipal grievance channels.'
+        });
+      }
+      updateGrievanceStatus(g.id, 'pending', 'Marked as routine municipal maintenance issue.');
+      setLocalGrievances(getLocalGrievances());
+      refetch();
+      setActionSuccess(`Issue ${g.id} marked as routine municipal maintenance.`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to mark as routine.');
+    }
+  };
+
   const handleQuickResolve = (g) => {
     updateGrievanceStatus(g.id, 'resolved', 'Grievance verified and resolved satisfactorily by municipal team.');
     setLocalGrievances(getLocalGrievances());

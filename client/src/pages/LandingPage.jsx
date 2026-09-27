@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
   FileText, Search, Building2, Bell, BookOpen, Headphones,
   ArrowRight, User, ShieldCheck, Landmark, Users, Lightbulb,
@@ -7,6 +8,7 @@ import {
 } from 'lucide-react';
 
 export default function LandingPage() {
+  const { isAuthenticated } = useAuth();
   return (
     <div className="bg-white min-h-screen font-sans text-[#17324D] w-full max-w-full overflow-x-hidden" id="main-content">
       
@@ -46,56 +48,58 @@ export default function LandingPage() {
             <div className="flex items-center gap-2.5">
               <span className="w-7 h-[3px] bg-[#F58220] rounded-full inline-block" aria-hidden="true"></span>
               <span className="text-[11px] sm:text-xs font-bold tracking-wider uppercase text-[#123B68]">
-                NATIONAL CIVIC PROBLEM SOLVING PLATFORM
+                SOCIETAL INNOVATION COLLABORATION PORTAL &bull; 
               </span>
             </div>
 
             {/* Main Heading - Clean modern government portal typography */}
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[54px] font-black text-[#123B68] tracking-tight leading-[1.12]">
-              Report. Collaborate.<br />Solve.
+              Crowdsource. Validate.<br />Co-Create Solutions.
             </h1>
 
             {/* Supporting Text */}
             <p className="text-sm sm:text-base lg:text-[17px] text-[#58718A] leading-relaxed max-w-xl font-normal">
-              Connect citizens, universities, government departments and industry partners to identify and solve real societal challenges.
+              Transform community-driven societal challenges into high-impact academic research, startup innovation, and deployable technology solutions.
             </p>
 
             {/* Action CTA Buttons */}
             <div className="flex flex-wrap items-center gap-3.5 pt-2">
-              {/* Primary: Report a Grievance */}
+              {/* Primary: Submit Societal Challenge */}
               <Link
-                to="/submit"
+                to={isAuthenticated ? "/submit" : "/auth"}
+                state={isAuthenticated ? undefined : { from: '/submit', message: 'Please login to submit a societal challenge.' }}
                 className="px-6 py-3 bg-[#F58220] hover:bg-[#E06D0C] text-white font-bold text-sm sm:text-base rounded-md shadow-sm hover:shadow transition-all flex items-center gap-2.5 active:scale-[0.99]"
-                aria-label="Report a new civic grievance"
+                aria-label="Submit a new societal challenge"
               >
                 <FileText size={18} className="flex-shrink-0" />
-                <span>Report a Grievance</span>
+                <span>Submit Societal Challenge</span>
               </Link>
 
-              {/* Secondary: Track Grievance */}
+              {/* Secondary: Track Challenge Status */}
               <Link
-                to="/track"
+                to={isAuthenticated ? "/citizen/dashboard" : "/auth"}
+                state={isAuthenticated ? undefined : { from: '/citizen/dashboard', message: 'Please login to track your submitted challenges.' }}
                 className="px-6 py-3 bg-white hover:bg-[#F4F9FD] text-[#123B68] border border-[#2878B8] hover:border-[#123B68] font-bold text-sm sm:text-base rounded-md shadow-sm hover:shadow-sm transition-all flex items-center gap-2.5 active:scale-[0.99]"
-                aria-label="Track existing civic grievance status"
+                aria-label="Track existing challenge status"
               >
                 <Search size={18} className="text-[#2878B8] flex-shrink-0" />
-                <span>Track Grievance</span>
+                <span>Track Challenge Status</span>
               </Link>
             </div>
 
-            {/* Trending Civic Topics / Searches */}
+            {/* Trending Innovation Themes */}
             <div className="pt-6 sm:pt-8">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs sm:text-[13px] font-bold text-[#123B68] mr-1">
-                  Trending Issues:
+                  Focus Research Domains:
                 </span>
                 {[
-                  { label: 'Water Scarcity', q: 'water' },
-                  { label: 'Education', q: 'education' },
-                  { label: 'Healthcare', q: 'health' },
-                  { label: 'Clean Environment', q: 'environment' },
-                  { label: 'Rural Development', q: 'rural' },
-                  { label: 'Infrastructure', q: 'infrastructure' },
+                  { label: 'Water Resources & Quality', q: 'water' },
+                  { label: 'Agritech & Post-Harvest', q: 'agriculture' },
+                  { label: 'Telemedicine & Healthtech', q: 'healthcare' },
+                  { label: 'Clean Energy & Micro-grids', q: 'energy' },
+                  { label: 'Smart Urban Systems', q: 'urban' },
+                  { label: 'Rural Livelihoods', q: 'rural' },
                 ].map((item) => (
                   <Link
                     key={item.label}
@@ -131,7 +135,8 @@ export default function LandingPage() {
             
             {/* Card 1: Report a Grievance */}
             <Link
-              to="/submit"
+              to={isAuthenticated ? "/submit" : "/auth"}
+              state={isAuthenticated ? undefined : { from: '/submit', message: 'Please login to register a grievance.' }}
               className="bg-white p-3.5 sm:p-4 rounded-md border border-[#D9E4ED] hover:border-[#2F6FA8] hover:shadow-sm transition-all flex items-center justify-between group"
             >
               <div className="flex items-center gap-3 min-w-0">
@@ -145,7 +150,8 @@ export default function LandingPage() {
 
             {/* Card 2: Track Grievance */}
             <Link
-              to="/track"
+              to={isAuthenticated ? "/citizen/dashboard" : "/auth"}
+              state={isAuthenticated ? undefined : { from: '/citizen/dashboard', message: 'Please login to track your grievances.' }}
               className="bg-white p-3.5 sm:p-4 rounded-md border border-[#D9E4ED] hover:border-[#2F6FA8] hover:shadow-sm transition-all flex items-center justify-between group"
             >
               <div className="flex items-center gap-3 min-w-0">
@@ -225,10 +231,10 @@ export default function LandingPage() {
           {/* Section Header */}
           <div className="mb-10 sm:mb-12">
             <h2 className="text-xl sm:text-2xl font-black text-[#123B67] tracking-tight">
-              From Civic Problem to Collaborative Solution
+              Societal Innovation Lifecycle
             </h2>
             <p className="text-xs sm:text-sm text-[#60758A] mt-1 max-w-2xl leading-relaxed">
-              Samadhan Setu connects citizens with institutions and organizations to turn real-world challenges into actionable solutions.
+              How grassroots community challenges are crowdsourced, screened by AI, matched with research institutions, and co-developed with industry for field deployment.
             </p>
           </div>
 
@@ -243,7 +249,7 @@ export default function LandingPage() {
               <div className="min-w-0">
                 <div className="text-[11px] font-black text-[#F58220]">STEP 01</div>
                 <div className="text-xs font-bold text-[#123B67] leading-tight mt-0.5">
-                  Citizen Reports Problem
+                  Citizen Crowdsources Challenge
                 </div>
               </div>
             </div>
@@ -256,7 +262,7 @@ export default function LandingPage() {
               <div className="min-w-0">
                 <div className="text-[11px] font-black text-[#F58220]">STEP 02</div>
                 <div className="text-xs font-bold text-[#123B67] leading-tight mt-0.5">
-                  Problem Verified
+                  AI Screening &amp; Prioritization
                 </div>
               </div>
             </div>
@@ -264,12 +270,12 @@ export default function LandingPage() {
             {/* Step 03 */}
             <div className="flex items-center gap-3 bg-white p-3.5 rounded-md border border-[#D9E4ED] shadow-xs">
               <div className="w-10 h-10 rounded-full bg-[#E0EDF8] flex items-center justify-center text-[#123B67] flex-shrink-0">
-                <Landmark size={18} />
+                <GraduationCap size={18} />
               </div>
               <div className="min-w-0">
                 <div className="text-[11px] font-black text-[#F58220]">STEP 03</div>
                 <div className="text-xs font-bold text-[#123B67] leading-tight mt-0.5">
-                  University / Dept Engaged
+                  University R&amp;D Prototyping
                 </div>
               </div>
             </div>
@@ -277,12 +283,12 @@ export default function LandingPage() {
             {/* Step 04 */}
             <div className="flex items-center gap-3 bg-white p-3.5 rounded-md border border-[#D9E4ED] shadow-xs">
               <div className="w-10 h-10 rounded-full bg-[#E0EDF8] flex items-center justify-center text-[#123B67] flex-shrink-0">
-                <Users size={18} />
+                <Briefcase size={18} />
               </div>
               <div className="min-w-0">
                 <div className="text-[11px] font-black text-[#F58220]">STEP 04</div>
                 <div className="text-xs font-bold text-[#123B67] leading-tight mt-0.5">
-                  Experts Collaborate
+                  Industry / CSR Co-Creation
                 </div>
               </div>
             </div>
@@ -295,7 +301,7 @@ export default function LandingPage() {
               <div className="min-w-0">
                 <div className="text-[11px] font-black text-[#F58220]">STEP 05</div>
                 <div className="text-xs font-bold text-[#123B67] leading-tight mt-0.5">
-                  Solution Implemented
+                  Field Solution Deployed
                 </div>
               </div>
             </div>
@@ -321,7 +327,8 @@ export default function LandingPage() {
             
             {/* Card 1: Citizens */}
             <Link
-              to="/submit"
+              to={isAuthenticated ? "/submit" : "/auth"}
+              state={isAuthenticated ? undefined : { from: '/submit', message: 'Please login to register a grievance.' }}
               className="bg-white p-6 rounded-md border border-[#D9E4ED] border-l-4 border-l-[#2F6FA8] hover:shadow-sm transition-all group flex items-start gap-4"
             >
               <div className="w-10 h-10 rounded-md bg-[#EEF5FA] flex items-center justify-center text-[#123B67] flex-shrink-0">

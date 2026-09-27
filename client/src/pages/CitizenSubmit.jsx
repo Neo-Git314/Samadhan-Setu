@@ -20,26 +20,26 @@ import {
 } from 'lucide-react';
 
 const CATEGORIES = [
-  { id: 'infrastructure', name: 'Roads & Infrastructure (PWD)', backendCategory: 'infrastructure' },
-  { id: 'water', name: 'Water Resources & Drinking Water', backendCategory: 'water_resources' },
-  { id: 'electricity', name: 'Electricity & Street Lighting', backendCategory: 'energy' },
-  { id: 'sanitation', name: 'Sanitation, Sewage & Waste Management', backendCategory: 'urban_development' },
-  { id: 'health', name: 'Public Healthcare & Clinics', backendCategory: 'healthcare' },
-  { id: 'education', name: 'Education & Government Schools', backendCategory: 'education' },
-  { id: 'environment', name: 'Environment, Trees & Pollution', backendCategory: 'environment' },
-  { id: 'rural', name: 'Rural Livelihoods & Panchayat Development', backendCategory: 'rural_livelihoods' },
-  { id: 'pds', name: 'Public Distribution & Ration (PDS)', backendCategory: 'public_administration' },
-  { id: 'welfare', name: 'Social Welfare & Pensions', backendCategory: 'accessibility' },
-  { id: 'other', name: 'Other Civic Grievance', backendCategory: 'uncategorized' }
+  { id: 'water', name: 'Water Resources & Drinking Water Quality', backendCategory: 'water_resources' },
+  { id: 'agriculture', name: 'Agritech, Post-Harvest & Cold Storage', backendCategory: 'agriculture' },
+  { id: 'health', name: 'Healthcare & Remote Telemedicine Diagnostics', backendCategory: 'healthcare' },
+  { id: 'energy', name: 'Renewable Energy, Micro-Grids & Power Systems', backendCategory: 'energy' },
+  { id: 'environment', name: 'Environment, Waste & Pollution Remediation', backendCategory: 'environment' },
+  { id: 'infrastructure', name: 'Smart Urban Infrastructure & Road Resurfacing', backendCategory: 'urban_development' },
+  { id: 'education', name: 'Educational Technology & Rural School Infrastructure', backendCategory: 'education' },
+  { id: 'rural', name: 'Tribal & Rural Livelihoods Development', backendCategory: 'rural_livelihoods' },
+  { id: 'accessibility', name: 'Accessibility & Assistive Tech Solutions', backendCategory: 'accessibility' },
+  { id: 'public_admin', name: 'Civic Administration & Public Delivery', backendCategory: 'public_administration' },
+  { id: 'other', name: 'Other Societal Challenge', backendCategory: 'uncategorized' }
 ];
 
 const STEPS = [
   { number: 1, title: 'Basic Info', label: '1 Basic Info' },
   { number: 2, title: 'Location', label: '2 Location' },
-  { number: 3, title: 'Complaint Details', label: '3 Complaint' },
-  { number: 4, title: 'Documents / Photos', label: '4 Documents' },
+  { number: 3, title: 'Challenge Details', label: '3 Challenge' },
+  { number: 4, title: 'Evidence / Photos', label: '4 Evidence' },
   { number: 5, title: 'Review', label: '5 Review' },
-  { number: 6, title: 'Submit', label: '6 Submit' }
+  { number: 6, title: 'AI Screening', label: '6 Screening' }
 ];
 
 export default function CitizenSubmit() {
@@ -63,21 +63,24 @@ export default function CitizenSubmit() {
 
   // Step 2: Pan-India Location State
   const [location, setLocation] = useState({
+    address: '',
+    landmark: '',
     state: '',
     stateCode: '',
     district: '',
     districtCode: '',
     city: '',
     cityCode: '',
-    pincode: '',
-    landmark: ''
+    pincode: ''
   });
 
   // Available options for cascading dropdowns
   const [availableDistricts, setAvailableDistricts] = useState([]);
   const [availableCities, setAvailableCities] = useState([]);
-  const [showMapPicker, setShowMapPicker] = useState(false);
-  const [coords, setCoords] = useState(null); // Optional GPS pin
+  const [showMapPicker, setShowMapPicker] = useState(true);
+  const [coords, setCoords] = useState({ lat: '', lng: '' });
+  const [detectedAddress, setDetectedAddress] = useState('');
+  const [showAdminDetails, setShowAdminDetails] = useState(false);
 
   // Step 3: Complaint Details
   const matchedCategory = CATEGORIES.find(
@@ -225,32 +228,46 @@ export default function CitizenSubmit() {
     }
 
     if (step === 1) {
-      // Step 2: Location
-      if (!location.state) {
-        setValidationError('Please select your State to continue.');
+      // Step 2: Location (Accepts either meaningful address description OR valid GPS coordinates)
+      const hasAddress = Boolean(
+        (location.address && location.address.trim().length >= 3) ||
+        (location.landmark && location.landmark.trim().length >= 3)
+      );
+
+      const latVal = coords?.lat !== '' && coords?.lat !== null && coords?.lat !== undefined ? parseFloat(coords.lat) : NaN;
+      const lngVal = coords?.lng !== '' && coords?.lng !== null && coords?.lng !== undefined ? parseFloat(coords.lng) : NaN;
+      const hasValidCoords = !isNaN(latVal) && !isNaN(lngVal) && latVal >= -90 && latVal <= 90 && lngVal >= -180 && lngVal <= 180;
+
+      if (!hasAddress && !hasValidCoords) {
+        setValidationError('Please provide a challenge location description/address OR pinpoint/enter valid GPS coordinates (Latitude & Longitude).');
         return false;
       }
-      if (!location.district) {
-        setValidationError('Please select your District to continue.');
-        return false;
+
+      // If latitude is partially entered, check valid range
+      if (coords?.lat !== '' && coords?.lat !== null && coords?.lat !== undefined) {
+        if (isNaN(latVal) || latVal < -90 || latVal > 90) {
+          setValidationError('Latitude must be a valid decimal number between -90.0 and +90.0.');
+          return false;
+        }
       }
-      if (!location.city) {
-        setValidationError('Please select your City, Town or Village to continue.');
-        return false;
+
+      // If longitude is partially entered, check valid range
+      if (coords?.lng !== '' && coords?.lng !== null && coords?.lng !== undefined) {
+        if (isNaN(lngVal) || lngVal < -180 || lngVal > 180) {
+          setValidationError('Longitude must be a valid decimal number between -180.0 and +180.0.');
+          return false;
+        }
       }
-      if (!location.pincode.trim()) {
-        setValidationError('Please enter your 6-digit Pincode to continue.');
-        return false;
+
+      // If optional pincode is provided, ensure it is 6 digits
+      if (location.pincode && location.pincode.trim()) {
+        const pincodeClean = location.pincode.replace(/[^0-9]/g, '');
+        if (pincodeClean.length !== 6) {
+          setValidationError('Postal Pincode must contain exactly 6 digits (or leave it empty).');
+          return false;
+        }
       }
-      const pincodeClean = location.pincode.replace(/[^0-9]/g, '');
-      if (pincodeClean.length !== 6) {
-        setValidationError('Pincode must contain exactly 6 digits.');
-        return false;
-      }
-      if (!location.landmark.trim()) {
-        setValidationError('Please specify the street, locality or landmark where the incident occurred.');
-        return false;
-      }
+
       return true;
     }
 
@@ -326,7 +343,21 @@ export default function CitizenSubmit() {
     const selectedCatObj = CATEGORIES.find(c => c.name === complaint.category);
     const backendCat = selectedCatObj ? selectedCatObj.backendCategory : 'uncategorized';
 
-    const fullIncidentAddress = `${location.landmark}, ${location.city}, ${location.district}, ${location.state} - ${location.pincode}`;
+    const primaryLoc = (location.address || location.landmark || '').trim();
+    const adminDetails = [
+      location.city?.trim(),
+      location.district?.trim(),
+      location.state?.trim(),
+      location.pincode?.trim() ? `PIN: ${location.pincode.trim()}` : ''
+    ].filter(Boolean).join(', ');
+
+    const fullIncidentAddress = primaryLoc
+      ? (adminDetails ? `${primaryLoc}, ${adminDetails}` : primaryLoc)
+      : (adminDetails || (coords?.lat && coords?.lng ? `GPS: ${coords.lat}, ${coords.lng}` : 'Pan-India'));
+
+    const latNum = coords?.lat !== '' && coords?.lat !== null && coords?.lat !== undefined ? parseFloat(coords.lat) : null;
+    const lngNum = coords?.lng !== '' && coords?.lng !== null && coords?.lng !== undefined ? parseFloat(coords.lng) : null;
+    const hasValidCoords = latNum !== null && lngNum !== null && !isNaN(latNum) && !isNaN(lngNum);
 
     const record = {
       id: generatedAckNumber,
@@ -336,15 +367,18 @@ export default function CitizenSubmit() {
       citizenMobile: citizen.mobile,
       citizenEmail: citizen.email,
       citizenAddress: citizen.address,
-      state: location.state,
-      stateCode: location.stateCode,
-      district: location.district,
-      districtCode: location.districtCode,
-      city: location.city,
-      cityCode: location.cityCode,
-      pincode: location.pincode,
+      state: location.state || '',
+      stateCode: location.stateCode || '',
+      district: location.district || '',
+      districtCode: location.districtCode || '',
+      city: location.city || '',
+      cityCode: location.cityCode || '',
+      pincode: location.pincode || '',
+      landmark: location.landmark || location.address || '',
       address: fullIncidentAddress,
       location: fullIncidentAddress,
+      lat: hasValidCoords ? latNum : undefined,
+      lng: hasValidCoords ? lngNum : undefined,
       title: complaint.title,
       subject: complaint.title,
       category: complaint.category,
@@ -381,19 +415,21 @@ export default function CitizenSubmit() {
       fd.append('description', complaint.description);
       fd.append('category', backendCat);
       fd.append('urgency', complaint.urgency);
-      fd.append('state', location.state);
-      fd.append('stateCode', location.stateCode);
-      fd.append('district', location.district);
-      fd.append('districtCode', location.districtCode);
-      fd.append('city', location.city);
-      fd.append('pincode', location.pincode);
+      if (location.state) fd.append('state', location.state);
+      if (location.stateCode) fd.append('stateCode', location.stateCode);
+      if (location.district) fd.append('district', location.district);
+      if (location.districtCode) fd.append('districtCode', location.districtCode);
+      if (location.city) fd.append('city', location.city);
+      if (location.pincode) fd.append('pincode', location.pincode);
       fd.append('address', fullIncidentAddress);
       fd.append('acknowledgementNumber', generatedAckNumber);
 
-      if (coords?.lat && coords?.lng) {
-        fd.append('location[lat]', coords.lat);
-        fd.append('location[lng]', coords.lng);
+      if (hasValidCoords) {
+        fd.append('location[lat]', latNum);
+        fd.append('location[lng]', lngNum);
         fd.append('location[address]', fullIncidentAddress);
+        fd.append('lat', latNum);
+        fd.append('lng', lngNum);
       }
 
       files.forEach(f => {
@@ -428,6 +464,8 @@ export default function CitizenSubmit() {
   // STEP 6: Confirmation & Official Acknowledgement View
   if (step === 5 && submittedGrievance) {
     const ackNumber = submittedGrievance.acknowledgementNumber || submittedGrievance.id;
+    const isRoutine = submittedGrievance.screeningClassification === 'routine_service_issue';
+    const isValidated = submittedGrievance.screeningClassification === 'validated_societal_challenge';
 
     return (
       <div className="bg-[#F8FAFC] min-h-screen py-10 px-4 sm:px-6" id="main-content">
@@ -438,14 +476,14 @@ export default function CitizenSubmit() {
             <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3 border border-emerald-200 shadow-xs">
               <CheckCircle2 size={36} />
             </div>
-            <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full mb-2">
-              ✓ Registered Under Right to Public Service Act
+            <span className="inline-block px-3 py-1 bg-blue-100 text-[#123B68] text-xs font-bold rounded-full mb-2 border border-blue-200">
+              ✓ Societal Innovation Pipeline
             </span>
             <h1 className="text-2xl sm:text-3xl font-black text-[#123B68] tracking-tight">
-              Grievance Registered Successfully
+              Societal Challenge Submitted Successfully
             </h1>
             <p className="text-xs sm:text-sm text-[#58718A] mt-1.5 max-w-lg mx-auto">
-              Your grievance has been officially entered into the national public redressal register. Jurisdictional authorities have been alerted.
+              Your community challenge has been registered and screened through the backend AI innovation evaluation pipeline.
             </p>
           </div>
 
@@ -455,7 +493,7 @@ export default function CitizenSubmit() {
               <SamadhanLogo className="w-11 h-11" />
               <div>
                 <span className="text-[11px] font-bold text-[#58718A] uppercase tracking-wider block">
-                  Official Grievance ID / Acknowledgement Number
+                  Official Challenge ID / Acknowledgement Number
                 </span>
                 <span className="font-mono text-xl sm:text-2xl font-black text-[#123B68] tracking-tight">
                   {ackNumber}
@@ -464,16 +502,61 @@ export default function CitizenSubmit() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded text-xs font-bold uppercase bg-amber-100 text-amber-900 border border-amber-300">
-                Submitted / Under Review
+              <span className={`px-3 py-1 rounded text-xs font-bold uppercase border ${
+                isValidated
+                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                  : isRoutine
+                  ? 'bg-amber-100 text-amber-900 border-amber-300'
+                  : 'bg-blue-100 text-blue-900 border-blue-300'
+              }`}>
+                {isValidated ? 'Validated Innovation Challenge' : isRoutine ? 'Routine Service Issue' : 'Queued for Review'}
               </span>
             </div>
           </div>
 
-          {/* Structured Grievance Summary Card */}
+          {/* AI Screening & Innovation Potential Card */}
+          <div className="bg-[#F0F7FF] border border-[#C2DCF2] rounded-md p-4 sm:p-5 space-y-3">
+            <div className="flex items-center gap-2 text-[#123B68] font-bold text-sm">
+              <Sparkles size={16} className="text-[#F58220]" />
+              <span>Backend AI Screening Evaluation</span>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="bg-white p-2.5 rounded border border-[#D9E4ED]">
+                <span className="text-[10px] text-[#60758A] font-bold uppercase block">Classification</span>
+                <span className="font-bold text-[#123B68]">
+                  {isValidated ? 'Validated Societal Challenge' : isRoutine ? 'Routine Service Issue' : 'Needs Expert Review'}
+                </span>
+              </div>
+              <div className="bg-white p-2.5 rounded border border-[#D9E4ED]">
+                <span className="text-[10px] text-[#60758A] font-bold uppercase block">Research Domain</span>
+                <span className="font-bold text-[#123B68]">{submittedGrievance.researchDomain || submittedGrievance.category}</span>
+              </div>
+              <div className="bg-white p-2.5 rounded border border-[#D9E4ED]">
+                <span className="text-[10px] text-[#60758A] font-bold uppercase block">Prioritization Score</span>
+                <span className="font-bold text-[#F58220]">{submittedGrievance.prioritizationScore || 85}/100</span>
+              </div>
+            </div>
+
+            {submittedGrievance.screeningReason && (
+              <p className="text-xs text-[#17324D] bg-white p-2.5 rounded border border-[#D9E4ED] leading-relaxed">
+                <strong className="text-[#123B68]">AI Assessment: </strong>
+                {submittedGrievance.screeningReason}
+              </p>
+            )}
+
+            {isRoutine && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded text-xs text-amber-900 leading-relaxed">
+                <strong>Guidance for Localized Maintenance: </strong>
+                {submittedGrievance.citizenGuidance || 'This item is not suitable for the societal innovation challenge pipeline. For localized civic repairs, please register a ticket with your local municipal corporation or district grievance desk.'}
+              </div>
+            )}
+          </div>
+
+          {/* Structured Challenge Summary Card */}
           <div className="border border-[#D9E4ED] rounded-md overflow-hidden text-xs">
             <div className="bg-[#123B68] text-white px-4 py-2.5 font-bold flex items-center justify-between">
-              <span>Grievance Summary Record</span>
+              <span>Challenge Submission Summary</span>
               <span className="text-[11px] text-gray-200 font-normal">
                 {new Date(submittedGrievance.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
               </span>
@@ -481,7 +564,7 @@ export default function CitizenSubmit() {
 
             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-white">
               <div>
-                <span className="text-[10px] text-[#58718A] uppercase font-bold block">Citizen Name</span>
+                <span className="text-[10px] text-[#58718A] uppercase font-bold block">Submitter Name</span>
                 <span className="font-semibold text-[#17324D]">{submittedGrievance.citizenName}</span>
               </div>
               <div>
@@ -489,21 +572,21 @@ export default function CitizenSubmit() {
                 <span className="font-semibold text-[#17324D]">{submittedGrievance.citizenMobile}</span>
               </div>
               <div>
-                <span className="text-[10px] text-[#58718A] uppercase font-bold block">Jurisdiction Location</span>
+                <span className="text-[10px] text-[#58718A] uppercase font-bold block">Target Locality / Jurisdiction</span>
                 <span className="font-semibold text-[#17324D]">
                   {submittedGrievance.city}, {submittedGrievance.district}, {submittedGrievance.state} - {submittedGrievance.pincode}
                 </span>
               </div>
               <div>
-                <span className="text-[10px] text-[#58718A] uppercase font-bold block">Category</span>
+                <span className="text-[10px] text-[#58718A] uppercase font-bold block">Innovation Category</span>
                 <span className="font-semibold text-[#17324D]">{submittedGrievance.category}</span>
               </div>
               <div className="sm:col-span-2 pt-2 border-t border-[#D9E4ED]">
-                <span className="text-[10px] text-[#58718A] uppercase font-bold block">Complaint Title</span>
+                <span className="text-[10px] text-[#58718A] uppercase font-bold block">Challenge Title</span>
                 <span className="font-bold text-sm text-[#123B68] block mt-0.5">{submittedGrievance.title}</span>
               </div>
               <div className="sm:col-span-2">
-                <span className="text-[10px] text-[#58718A] uppercase font-bold block">Description</span>
+                <span className="text-[10px] text-[#58718A] uppercase font-bold block">Problem Description</span>
                 <p className="text-[#17324D] mt-0.5 leading-relaxed bg-[#F8FAFC] p-2.5 rounded border border-[#D9E4ED]">
                   {submittedGrievance.description}
                 </p>
@@ -511,18 +594,7 @@ export default function CitizenSubmit() {
             </div>
           </div>
 
-          {/* SLA Guarantee Box */}
-          <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-md text-xs text-[#123B68] flex items-start gap-2.5">
-            <Info size={18} className="text-[#2878B8] flex-shrink-0 mt-0.5" />
-            <div>
-              <strong className="block font-bold">15-Day Statutory Redressal Guarantee:</strong>
-              <p className="text-[11px] text-[#58718A] mt-0.5 leading-relaxed">
-                As per public-service norms, your grievance is assigned to the designated officer. You can cite Acknowledgement No. <strong>{ackNumber}</strong> to track updates or escalate if unresolved within 15 working days.
-              </p>
-            </div>
-          </div>
-
-          {/* Action Buttons (Requirement 13 & 14) */}
+          {/* Action Buttons */}
           <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {/* Download PDF */}
             <button
@@ -534,7 +606,7 @@ export default function CitizenSubmit() {
               <span>Download PDF</span>
             </button>
 
-            {/* Print Slip (Uses identical PDF) */}
+            {/* Print Slip */}
             <button
               onClick={() => printGrievancePDF(submittedGrievance)}
               className="py-3 px-3 bg-[#2878B8] hover:bg-[#1A5C94] text-white font-bold text-xs rounded transition-all flex items-center justify-center gap-2 shadow-xs active:scale-[0.98]"
@@ -544,21 +616,21 @@ export default function CitizenSubmit() {
               <span>Print Acknowledgement</span>
             </button>
 
-            {/* Track Grievance */}
+            {/* Track Challenge */}
             <button
               onClick={() => navigate(`/track?id=${ackNumber}`)}
               className="py-3 px-3 bg-white hover:bg-[#EEF7FC] text-[#123B68] border border-[#2878B8] font-bold text-xs rounded transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
             >
               <FileText size={15} />
-              <span>Track Grievance</span>
+              <span>Track Status</span>
             </button>
 
-            {/* Go to My Grievances */}
+            {/* Go to My Challenges */}
             <button
               onClick={() => navigate('/citizen/complaints')}
               className="py-3 px-3 bg-[#F8FAFC] hover:bg-[#EEF5FA] text-[#17324D] border border-[#D9E4ED] font-semibold text-xs rounded transition-all flex items-center justify-center gap-1.5"
             >
-              <span>Go to My Grievances</span>
+              <span>My Challenges</span>
             </button>
           </div>
 
@@ -573,7 +645,7 @@ export default function CitizenSubmit() {
               }}
               className="text-xs text-[#2878B8] hover:text-[#123B68] font-bold hover:underline"
             >
-              + File Another Civic Grievance
+              + Submit Another Societal Challenge
             </button>
           </div>
 
@@ -765,121 +837,237 @@ export default function CitizenSubmit() {
 
         {/* ── STEP 2: PAN-INDIA LOCATION SELECTION ─────────────── */}
         {step === 1 && (
-          <div className="bg-white rounded-lg border border-[#D9E4ED] p-5 sm:p-7 shadow-xs space-y-5 animate-fade-in">
+          <div className="bg-white rounded-lg border border-[#D9E4ED] p-5 sm:p-7 shadow-xs space-y-6 animate-fade-in">
             <div className="border-b border-[#D9E4ED] pb-3">
-              <span className="text-[11px] font-bold text-[#F58220] uppercase tracking-wider block">
-                STEP 2 OF 6
-              </span>
-              <h2 className="text-base sm:text-lg font-bold text-[#123B68]">
-                Incident Location (Pan-India)
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-[#F58220] uppercase tracking-wider block">
+                  STEP 2 OF 6
+                </span>
+                <span className="text-[11px] font-medium bg-blue-50 text-[#123B68] px-2.5 py-0.5 rounded border border-blue-200">
+                  Address OR GPS Coordinates Accepted
+                </span>
+              </div>
+              <h2 className="text-base sm:text-lg font-bold text-[#123B68] mt-1">
+                Challenge Location
               </h2>
               <p className="text-xs text-[#58718A] mt-0.5">
-                Select your State, District, and City/Town/Village. Nationwide cascading dropdowns allow complaints from any part of India.
+                Provide either a descriptive location/address OR pinpoint/enter valid GPS coordinates. Administrative region fields are optional.
               </p>
             </div>
 
-            <div className="space-y-4">
-              {/* STATE DROPDOWN */}
-              <SearchableDropdown
-                label="State / Union Territory"
-                id="state-select"
-                required={true}
-                placeholder="-- Select State or UT --"
-                searchPlaceholder="Search Indian States / UTs..."
-                options={getAllStates().map(s => s.name)}
-                value={location.state}
-                onChange={handleStateChange}
-                helperText="Available for all 28 Indian States and 8 Union Territories"
-              />
-
-              {/* DISTRICT DROPDOWN */}
-              <SearchableDropdown
-                label="District"
-                id="district-select"
-                required={true}
-                disabled={!location.state}
-                placeholder={location.state ? "-- Select District --" : "Please select State first"}
-                searchPlaceholder={`Search district in ${location.state || 'selected State'}...`}
-                options={availableDistricts}
-                value={location.district}
-                onChange={handleDistrictChange}
-                helperText={location.state ? `Showing districts for ${location.state}` : 'Disabled until State is selected'}
-              />
-
-              {/* CITY / TOWN / VILLAGE DROPDOWN */}
-              <SearchableDropdown
-                label="City / Town / Village"
-                id="city-select"
-                required={true}
-                disabled={!location.district}
-                placeholder={location.district ? "-- Select or Search Location --" : "Please select District first"}
-                searchPlaceholder={`Search city, town or village in ${location.district || 'district'}...`}
-                options={availableCities}
-                value={location.city}
-                onChange={handleCityChange}
-                allowCustom={true}
-                customPlaceholder="Type village / mohalla if not listed..."
-                helperText="Select or type your specific town, ward, village or mohalla"
-              />
-
-              {/* PINCODE */}
+            <div className="space-y-5">
+              {/* PRIMARY LOCATION / ADDRESS DESCRIPTION */}
               <div>
-                <label className="block text-xs font-bold text-[#123B68] mb-1.5">
-                  Postal Pincode (6 Digits) <span className="text-red-500">*</span>
+                <label className="block text-xs font-bold text-[#123B68] mb-1.5 flex items-center justify-between">
+                  <span>
+                    Location Description / Address / Landmark <span className="text-amber-600 font-normal">(Required if no GPS coordinates)</span>
+                  </span>
+                  {detectedAddress && (!location.address && !location.landmark) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLocation(prev => ({ ...prev, address: detectedAddress, landmark: detectedAddress }));
+                      }}
+                      className="text-[11px] text-[#2878B8] hover:text-[#123B68] font-bold hover:underline"
+                    >
+                      + Use Detected Address
+                    </button>
+                  )}
                 </label>
-                <input
-                  type="text"
-                  maxLength={6}
-                  value={location.pincode}
+                <textarea
+                  rows={2}
+                  value={location.address || location.landmark || ''}
                   onChange={(e) => {
                     setValidationError('');
-                    setLocation({ ...location, pincode: e.target.value.replace(/[^0-9]/g, '') });
+                    setLocation({
+                      ...location,
+                      address: e.target.value,
+                      landmark: e.target.value
+                    });
                   }}
-                  placeholder="e.g. 273001, 834001, 400001, 560001"
+                  placeholder="e.g. Near Community Primary Health Center, Block B, Main Canal Breach, or NH-24 milestone 42, Village Rampur"
                   className="w-full px-3 py-2.5 text-sm bg-white border border-[#D9E4ED] rounded focus:outline-none focus:border-[#2878B8] focus:ring-1 focus:ring-[#2878B8]"
                 />
                 <span className="text-[11px] text-[#58718A] mt-1 block">
-                  Standard 6-digit Indian Postal Code
+                  Enter street, road, ward, village, landmark, or descriptive address of where the societal problem occurs.
                 </span>
               </div>
 
-              {/* SPECIFIC STREET / LANDMARK */}
-              <div>
-                <label className="block text-xs font-bold text-[#123B68] mb-1.5">
-                  Specific Incident Landmark / Street / Ward <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={location.landmark}
-                  onChange={(e) => {
-                    setValidationError('');
-                    setLocation({ ...location, landmark: e.target.value });
-                  }}
-                  placeholder="e.g. In front of Primary Health Center, Near Transformer No. 4, Main Market Road"
-                  className="w-full px-3 py-2.5 text-sm bg-white border border-[#D9E4ED] rounded focus:outline-none focus:border-[#2878B8] focus:ring-1 focus:ring-[#2878B8]"
-                />
+              {/* MAP & GPS COORDINATES SECTION */}
+              <div className="bg-[#F8FAFC] border border-[#D9E4ED] rounded-lg p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <MapPin size={16} className="text-[#2878B8]" />
+                    <span className="text-xs font-bold text-[#123B68]">
+                      GPS Coordinates &amp; Interactive Map Pinning
+                    </span>
+                  </div>
+                  {(coords.lat || coords.lng) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCoords({ lat: '', lng: '' });
+                        setDetectedAddress('');
+                      }}
+                      className="text-[11px] text-red-600 hover:text-red-800 font-semibold"
+                    >
+                      Clear Coordinates
+                    </button>
+                  )}
+                </div>
+
+                {/* EDITABLE LATITUDE & LONGITUDE INPUTS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#17324D] mb-1">
+                      Latitude <span className="text-gray-400 font-normal">(-90.000000 to +90.000000)</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      min="-90"
+                      max="90"
+                      value={coords.lat}
+                      onChange={(e) => {
+                        setValidationError('');
+                        setCoords(prev => ({ ...prev, lat: e.target.value }));
+                      }}
+                      placeholder="e.g. 26.846708"
+                      className="w-full px-3 py-2 text-xs font-mono bg-white border border-[#D9E4ED] rounded focus:outline-none focus:border-[#2878B8] focus:ring-1 focus:ring-[#2878B8]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#17324D] mb-1">
+                      Longitude <span className="text-gray-400 font-normal">(-180.000000 to +180.000000)</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      min="-180"
+                      max="180"
+                      value={coords.lng}
+                      onChange={(e) => {
+                        setValidationError('');
+                        setCoords(prev => ({ ...prev, lng: e.target.value }));
+                      }}
+                      placeholder="e.g. 80.946166"
+                      className="w-full px-3 py-2 text-xs font-mono bg-white border border-[#D9E4ED] rounded focus:outline-none focus:border-[#2878B8] focus:ring-1 focus:ring-[#2878B8]"
+                    />
+                  </div>
+                </div>
+
+                {/* MAP PICKER */}
+                <div className="pt-2">
+                  <LocationPicker
+                    value={coords.lat && coords.lng ? coords : null}
+                    onChange={(selectedLoc) => {
+                      setValidationError('');
+                      setCoords({ lat: selectedLoc.lat, lng: selectedLoc.lng });
+                      if (selectedLoc.address) {
+                        setDetectedAddress(selectedLoc.address);
+                        // If description is empty, auto-populate
+                        if (!location.address && !location.landmark) {
+                          setLocation(prev => ({
+                            ...prev,
+                            address: selectedLoc.address,
+                            landmark: selectedLoc.address
+                          }));
+                        }
+                      }
+                    }}
+                  />
+                </div>
               </div>
 
-              {/* OPTIONAL MAP LOCATION (Requirement 10) */}
-              <div className="pt-2">
+              {/* OPTIONAL ADMINISTRATIVE DETAILS SECTION */}
+              <div className="border border-[#D9E4ED] rounded-lg overflow-hidden">
                 <button
                   type="button"
-                  onClick={() => setShowMapPicker(!showMapPicker)}
-                  className="px-3.5 py-2 bg-[#EEF7FC] hover:bg-[#DDEEF8] text-[#123B68] rounded border border-[#B8D5E5] text-xs font-bold flex items-center gap-2 transition-colors"
+                  onClick={() => setShowAdminDetails(!showAdminDetails)}
+                  className="w-full p-3.5 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"
                 >
-                  <MapPin size={15} className="text-[#2878B8]" />
-                  <span>{showMapPicker ? 'Hide Map Location Pin' : 'Pin Exact Location on Map (Optional)'}</span>
+                  <div className="flex items-center gap-2">
+                    <Building2 size={16} className="text-[#2878B8]" />
+                    <span className="text-xs font-bold text-[#123B68]">
+                      Administrative Region (Optional Helper Fields)
+                    </span>
+                    {(location.state || location.district || location.city || location.pincode) && (
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">
+                        Specified
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-[#2878B8] font-bold">
+                    {showAdminDetails ? '▲ Hide' : '▼ Expand'}
+                  </span>
                 </button>
 
-                {showMapPicker && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200">
-                    <p className="text-[11px] text-[#58718A] mb-2">
-                      Click on the map to drop an exact GPS pin. This helps field engineers locate the spot quickly.
+                {showAdminDetails && (
+                  <div className="p-4 space-y-3.5 bg-white border-t border-[#D9E4ED] animate-fade-in">
+                    <p className="text-[11px] text-[#58718A]">
+                      These optional fields help regional authorities route challenges to local administrative units.
                     </p>
-                    <LocationPicker
-                      onLocationSelect={(selectedCoords) => setCoords(selectedCoords)}
-                      initialPosition={coords}
+
+                    {/* STATE DROPDOWN */}
+                    <SearchableDropdown
+                      label="State / Union Territory (Optional)"
+                      id="state-select"
+                      required={false}
+                      placeholder="-- Select State or UT --"
+                      searchPlaceholder="Search Indian States / UTs..."
+                      options={getAllStates().map(s => s.name)}
+                      value={location.state}
+                      onChange={handleStateChange}
+                      helperText="Available for all 28 Indian States and 8 Union Territories"
                     />
+
+                    {/* DISTRICT DROPDOWN */}
+                    <SearchableDropdown
+                      label="District (Optional)"
+                      id="district-select"
+                      required={false}
+                      disabled={!location.state}
+                      placeholder={location.state ? "-- Select District --" : "Please select State first"}
+                      searchPlaceholder={`Search district in ${location.state || 'selected State'}...`}
+                      options={availableDistricts}
+                      value={location.district}
+                      onChange={handleDistrictChange}
+                      helperText={location.state ? `Showing districts for ${location.state}` : 'Disabled until State is selected'}
+                    />
+
+                    {/* CITY / TOWN / VILLAGE DROPDOWN */}
+                    <SearchableDropdown
+                      label="City / Town / Village (Optional)"
+                      id="city-select"
+                      required={false}
+                      disabled={!location.district}
+                      placeholder={location.district ? "-- Select or Search Location --" : "Please select District first"}
+                      searchPlaceholder={`Search city, town or village in ${location.district || 'district'}...`}
+                      options={availableCities}
+                      value={location.city}
+                      onChange={handleCityChange}
+                      allowCustom={true}
+                      customPlaceholder="Type village / mohalla if not listed..."
+                      helperText="Select or type your specific town, ward, village or mohalla"
+                    />
+
+                    {/* PINCODE */}
+                    <div>
+                      <label className="block text-xs font-bold text-[#123B68] mb-1.5">
+                        Postal Pincode (Optional - 6 Digits)
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={location.pincode}
+                        onChange={(e) => {
+                          setValidationError('');
+                          setLocation({ ...location, pincode: e.target.value.replace(/[^0-9]/g, '') });
+                        }}
+                        placeholder="e.g. 273001, 834001, 400001, 560001"
+                        className="w-full px-3 py-2 text-sm bg-white border border-[#D9E4ED] rounded focus:outline-none focus:border-[#2878B8] focus:ring-1 focus:ring-[#2878B8]"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -901,7 +1089,7 @@ export default function CitizenSubmit() {
                 onClick={handleNext}
                 className="px-6 py-2.5 bg-[#123B68] hover:bg-[#0B2440] text-white font-bold text-xs sm:text-sm rounded transition-all flex items-center gap-2 shadow-xs"
               >
-                <span>Continue to Complaint</span>
+                <span>Continue to Challenge</span>
                 <ChevronRight size={16} />
               </button>
             </div>
@@ -1190,7 +1378,7 @@ export default function CitizenSubmit() {
             <div className="border border-[#D9E4ED] rounded-md p-4 bg-[#F8FAFC]">
               <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#D9E4ED]">
                 <span className="font-bold text-xs text-[#123B68] uppercase tracking-wide">
-                  2. Incident Location (Pan-India)
+                  2. Challenge Location
                 </span>
                 <button
                   type="button"
@@ -1200,27 +1388,43 @@ export default function CitizenSubmit() {
                   Edit
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-[#58718A] block">State / UT:</span>
-                  <span className="font-semibold text-[#17324D]">{location.state}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div className="sm:col-span-2">
+                  <span className="text-[#58718A] block">Address / Location Description:</span>
+                  <span className="font-semibold text-[#17324D]">{location.address || location.landmark || 'GPS Pin Location'}</span>
                 </div>
-                <div>
-                  <span className="text-[#58718A] block">District:</span>
-                  <span className="font-semibold text-[#17324D]">{location.district}</span>
-                </div>
-                <div>
-                  <span className="text-[#58718A] block">City / Town / Village:</span>
-                  <span className="font-semibold text-[#17324D]">{location.city}</span>
-                </div>
-                <div>
-                  <span className="text-[#58718A] block">Pincode:</span>
-                  <span className="font-semibold text-[#17324D]">{location.pincode}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-[#58718A] block">Specific Landmark:</span>
-                  <span className="text-[#17324D]">{location.landmark}</span>
-                </div>
+                {coords?.lat && coords?.lng && (
+                  <div className="sm:col-span-2">
+                    <span className="text-[#58718A] block">GPS Coordinates:</span>
+                    <span className="font-mono font-semibold text-[#123B68] bg-blue-50 px-2 py-0.5 rounded border border-blue-200 inline-block">
+                      📍 Lat: {coords.lat}, Lng: {coords.lng}
+                    </span>
+                  </div>
+                )}
+                {location.state && (
+                  <div>
+                    <span className="text-[#58718A] block">State / UT:</span>
+                    <span className="font-semibold text-[#17324D]">{location.state}</span>
+                  </div>
+                )}
+                {location.district && (
+                  <div>
+                    <span className="text-[#58718A] block">District:</span>
+                    <span className="font-semibold text-[#17324D]">{location.district}</span>
+                  </div>
+                )}
+                {location.city && (
+                  <div>
+                    <span className="text-[#58718A] block">City / Town / Village:</span>
+                    <span className="font-semibold text-[#17324D]">{location.city}</span>
+                  </div>
+                )}
+                {location.pincode && (
+                  <div>
+                    <span className="text-[#58718A] block">Postal Pincode:</span>
+                    <span className="font-semibold text-[#17324D]">{location.pincode}</span>
+                  </div>
+                )}
               </div>
             </div>
 

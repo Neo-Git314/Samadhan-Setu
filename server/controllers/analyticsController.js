@@ -10,40 +10,78 @@ import Project from '../models/Project.js';
  */
 export const getSummary = async (_req, res, next) => {
   try {
-    const [complaintsAgg, totalUniversities, totalIndustryPartners, totalProjectsCompleted] =
-      await Promise.all([
-        Complaint.aggregate([
-          {
-            $facet: {
-              totalCount: [{ $count: 'count' }],
-              byCategory: [
-                { $group: { _id: '$category', count: { $sum: 1 } } },
-                { $project: { _id: 0, category: '$_id', count: 1 } },
-                { $sort: { count: -1 } }
-              ],
-              byStatus: [
-                { $group: { _id: '$status', count: { $sum: 1 } } },
-                { $project: { _id: 0, status: '$_id', count: 1 } },
-                { $sort: { count: -1 } }
-              ],
-              byDistrict: [
-                { $group: { _id: '$district', count: { $sum: 1 } } },
-                { $project: { _id: 0, district: '$_id', count: 1 } },
-                { $sort: { count: -1 } }
-              ]
-            }
+    const [
+      complaintsAgg,
+      totalUniversities,
+      totalIndustryPartners,
+      totalProjectsCompleted,
+      activeProjectsCount,
+      validatedChallengesCount,
+      routineFilteredCount,
+      challengesUnderReviewCount,
+      impactAggregation
+    ] = await Promise.all([
+      Complaint.aggregate([
+        {
+          $facet: {
+            totalCount: [{ $count: 'count' }],
+            byCategory: [
+              { $group: { _id: '$category', count: { $sum: 1 } } },
+              { $project: { _id: 0, category: '$_id', count: 1 } },
+              { $sort: { count: -1 } }
+            ],
+            byStatus: [
+              { $group: { _id: '$status', count: { $sum: 1 } } },
+              { $project: { _id: 0, status: '$_id', count: 1 } },
+              { $sort: { count: -1 } }
+            ],
+            byDistrict: [
+              { $group: { _id: '$district', count: { $sum: 1 } } },
+              { $project: { _id: 0, district: '$_id', count: 1 } },
+              { $sort: { count: -1 } }
+            ]
           }
-        ]),
-        University.countDocuments(),
-        IndustryPartner.countDocuments(),
-        Project.countDocuments({ status: 'completed' })
-      ]);
+        }
+      ]),
+      University.countDocuments(),
+      IndustryPartner.countDocuments(),
+      Project.countDocuments({ status: 'completed' }),
+      Project.countDocuments({ status: { $in: ['proposed', 'approved', 'in_progress', 'testing'] } }),
+      Complaint.countDocuments({
+        $or: [
+          { screeningClassification: 'validated_societal_challenge' },
+          { status: { $in: ['reviewed', 'assigned', 'in_progress', 'resolved'] } }
+        ]
+      }),
+      Complaint.countDocuments({ screeningClassification: 'routine_service_issue' }),
+      Complaint.countDocuments({
+        $or: [
+          { needsReview: true },
+          { screeningClassification: 'needs_expert_review' },
+          { status: 'pending' }
+        ]
+      }),
+      // Aggregate community impact (e.g. estimated population footprint based on prioritization scores)
+      Complaint.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalPrioritizationScore: { $sum: { $ifNull: ['$prioritizationScore', 50] } },
+            avgPrioritizationScore: { $avg: { $ifNull: ['$prioritizationScore', 50] } }
+          }
+        }
+      ])
+    ]);
 
     const facetResult = complaintsAgg[0] || {};
     const totalComplaints = facetResult.totalCount?.[0]?.count || 0;
     const byCategory = facetResult.byCategory || [];
     const byStatus = facetResult.byStatus || [];
     const byDistrict = facetResult.byDistrict || [];
+
+    const totalPrioritization = impactAggregation[0]?.totalPrioritizationScore || 0;
+    // Estimated community beneficiaries based on challenge volume & prioritization weight
+    const estimatedBeneficiaries = totalPrioritization > 0 ? Math.round(totalPrioritization * 45) : totalComplaints * 320;
 
     return res.status(200).json({
       totalComplaints,
@@ -52,7 +90,12 @@ export const getSummary = async (_req, res, next) => {
       byDistrict,
       totalUniversitiesParticipating: totalUniversities,
       totalIndustryPartnersEngaged: totalIndustryPartners,
-      totalProjectsCompleted
+      totalProjectsCompleted,
+      activeProjectsCount,
+      validatedChallengesCount,
+      routineFilteredCount,
+      challengesUnderReviewCount,
+      estimatedBeneficiaries
     });
   } catch (error) {
     next(error);

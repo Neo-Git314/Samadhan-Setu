@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { complaintApi } from '../api/endpoints';
-import { getLocalGrievances } from '../services/civicData';
+import { getLocalGrievances, getCitizenLocalGrievances } from '../services/civicData';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorState from '../components/ErrorState';
@@ -13,20 +14,25 @@ import { FileText, Plus, Search, Filter, MapPin, Calendar, ChevronRight, Downloa
 const STATUSES = ['all', 'submitted', 'under_review', 'assigned', 'action_taken', 'resolved'];
 
 export default function CitizenComplaints() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState('cards');
 
-  // Backend query
+  // Backend query (strictly returns current user's complaints from /api/complaints/my)
   const { data: apiComplaints = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['my-complaints'],
     queryFn: () => complaintApi.getMine().then(r => r.data?.complaints || r.data || []),
     staleTime: 30000,
   });
 
-  // Local synced grievances
-  const localList = useMemo(() => getLocalGrievances(), []);
+  // Local synced grievances strictly isolated to current citizen
+  const localList = useMemo(() => {
+    if (!user) return [];
+    if (user.role === 'admin') return getLocalGrievances();
+    return getCitizenLocalGrievances(user);
+  }, [user]);
 
   // Merge list avoiding duplicates
   const allGrievances = useMemo(() => {
@@ -90,10 +96,10 @@ export default function CitizenComplaints() {
               <span>›</span>
               <Link to="/citizen/dashboard" className="hover:underline">Dashboard</Link>
               <span>›</span>
-              <span>My Grievances</span>
+              <span>My Challenges</span>
             </div>
-            <h1 className="text-2xl font-bold text-navy-950">My Grievances History</h1>
-            <p className="text-xs text-gray-600 mt-0.5">Track and download copies of all your registered complaints</p>
+            <h1 className="text-2xl font-bold text-navy-950">My Submitted Challenges</h1>
+            <p className="text-xs text-gray-600 mt-0.5">Track, review screening assessments, and download acknowledgements for your crowdsourced challenges</p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -108,7 +114,7 @@ export default function CitizenComplaints() {
               to="/submit"
               className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-saffron-600 hover:bg-saffron-700 rounded transition-colors shadow-sm"
             >
-              <Plus size={14} /> File a Grievance
+              <Plus size={14} /> Submit Challenge
             </Link>
           </div>
         </div>
@@ -191,14 +197,14 @@ export default function CitizenComplaints() {
           ) : filtered.length === 0 ? (
             <div className="bg-white rounded border border-gray-300 p-10 text-center text-gray-500 text-xs shadow-sm">
               <FileText size={32} className="mx-auto text-gray-400 mb-2" />
-              <div className="font-bold text-sm text-navy-950">No Grievances Registered Yet</div>
+              <div className="font-bold text-sm text-navy-950">No grievances submitted yet</div>
               <p className="mt-1">When you submit a civic grievance, it will appear here with live tracking status.</p>
               <div className="mt-4">
                 <Link
                   to="/submit"
                   className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-saffron-600 hover:bg-saffron-700 rounded transition-colors shadow-sm"
                 >
-                  <Plus size={14} /> Report Grievance
+                  <Plus size={14} /> Register a Grievance
                 </Link>
               </div>
             </div>

@@ -11,7 +11,9 @@ L.Icon.Default.mergeOptions({
 });
 
 
-export default function LocationPicker({ value, onChange }) {
+export default function LocationPicker({ value, onChange, onLocationSelect, initialPosition }) {
+  const effectiveValue = value || initialPosition;
+  const handleChange = onChange || onLocationSelect || (() => {});
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -36,10 +38,14 @@ export default function LocationPicker({ value, onChange }) {
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
+    const lat = parseFloat(effectiveValue?.lat);
+    const lng = parseFloat(effectiveValue?.lng);
+    const hasValidCoords = !isNaN(lat) && !isNaN(lng);
+
     const defaultCenter = [23.6, 80.2]; // center of India
     const map = L.map(mapRef.current, {
-      center: value?.lat ? [value.lat, value.lng] : defaultCenter,
-      zoom: value?.lat ? 14 : 5,
+      center: hasValidCoords ? [lat, lng] : defaultCenter,
+      zoom: hasValidCoords ? 14 : 5,
       zoomControl: true,
     });
 
@@ -48,21 +54,21 @@ export default function LocationPicker({ value, onChange }) {
       maxZoom: 19,
     }).addTo(map);
 
-    if (value?.lat) {
-      markerRef.current = L.marker([value.lat, value.lng]).addTo(map);
+    if (hasValidCoords) {
+      markerRef.current = L.marker([lat, lng]).addTo(map);
     }
 
     map.on('click', async (e) => {
-      const { lat, lng } = e.latlng;
+      const { lat: clickLat, lng: clickLng } = e.latlng;
       if (markerRef.current) {
-        markerRef.current.setLatLng([lat, lng]);
+        markerRef.current.setLatLng([clickLat, clickLng]);
       } else {
-        markerRef.current = L.marker([lat, lng]).addTo(map);
+        markerRef.current = L.marker([clickLat, clickLng]).addTo(map);
       }
-      const latFixed = parseFloat(lat.toFixed(6));
-      const lngFixed = parseFloat(lng.toFixed(6));
+      const latFixed = parseFloat(clickLat.toFixed(6));
+      const lngFixed = parseFloat(clickLng.toFixed(6));
       const address = await reverseGeocode(latFixed, lngFixed);
-      onChange({ lat: latFixed, lng: lngFixed, address });
+      handleChange({ lat: latFixed, lng: lngFixed, address });
     });
 
     mapInstanceRef.current = map;
@@ -72,6 +78,20 @@ export default function LocationPicker({ value, onChange }) {
       markerRef.current = null;
     };
   }, []);
+
+  // Sync marker and center when coordinates update externally
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const lat = parseFloat(effectiveValue?.lat);
+    const lng = parseFloat(effectiveValue?.lng);
+    if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      if (markerRef.current) {
+        markerRef.current.setLatLng([lat, lng]);
+      } else {
+        markerRef.current = L.marker([lat, lng]).addTo(mapInstanceRef.current);
+      }
+    }
+  }, [effectiveValue?.lat, effectiveValue?.lng]);
 
   const useMyLocation = () => {
     if (!navigator.geolocation) { setGeoError('Geolocation not supported by your browser.'); return; }

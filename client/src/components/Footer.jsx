@@ -105,11 +105,8 @@ export default function Footer() {
 
           {/* Col 5: SIH Mandate & Prototype Info (Cols 11-12) */}
           <div className="lg:col-span-2 text-left lg:text-right space-y-1.5 text-xs text-[#60758A]">
-            <div className="text-[11px] font-semibold text-[#123B67]">
-              SIH 2026 | Problem Statement 26043
-            </div>
             <div className="text-[11px]">
-              &copy; 2026 Samadhan Setu
+              Samadhan Setu
             </div>
             <div className="text-[10px] text-[#60758A]">
               Prototype / Demonstration Platform

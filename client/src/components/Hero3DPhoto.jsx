@@ -128,7 +128,7 @@ export default function Hero3DPhoto({
             <span className="w-2 h-2 rounded-full bg-[#2E7D32] animate-pulse"></span>
             <span className="text-[11px] sm:text-xs font-semibold text-[#123B67] tracking-tight flex items-center gap-1.5">
               <ShieldCheck size={14} className="text-[#2F6FA8]" />
-              SIH 2026 • AI Problem Solving
+              <span> • AI Problem Solving</span>
             </span>
           </div>
         </div>

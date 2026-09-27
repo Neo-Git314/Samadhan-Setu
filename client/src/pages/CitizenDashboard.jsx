@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getLocalGrievances, PUBLIC_NOTICES, addCitizenFeedback } from '../services/civicData';
+import { complaintApi } from '../api/endpoints';
+import { getLocalGrievances, getCitizenLocalGrievances, PUBLIC_NOTICES, addCitizenFeedback } from '../services/civicData';
 import { downloadGrievancePDF, printGrievancePDF } from '../services/pdfService';
+import StatusBadge from '../components/StatusBadge';
 import SamadhanLogo from '../components/SamadhanLogo';
 import {
   FileText, Plus, Search, CheckCircle2, Clock, MapPin,
@@ -15,13 +17,53 @@ export default function CitizenDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Local synced grievances
-  const allGrievances = useMemo(() => getLocalGrievances(), []);
-  
-  // Filter grievances submitted by this citizen (or all demo grievances if evaluator)
+  // Local synced grievances strictly isolated to logged-in citizen
+  const localGrievances = useMemo(() => {
+    if (!user) return [];
+    if (user.role === 'admin') return getLocalGrievances();
+    return getCitizenLocalGrievances(user);
+  }, [user]);
+
+  const [backendGrievances, setBackendGrievances] = useState([]);
+
+  // Fetch backend complaints registered by this user
+  useEffect(() => {
+    if (user) {
+      complaintApi.getMine()
+        .then(res => {
+          const list = res.data?.complaints || res.data || [];
+          setBackendGrievances(Array.isArray(list) ? list : []);
+        })
+        .catch(() => {});
+    }
+  }, [user]);
+
+  // Merge local and backend records without duplicates
   const myGrievances = useMemo(() => {
-    return allGrievances;
-  }, [allGrievances]);
+    const list = [...localGrievances];
+    backendGrievances.forEach(ac => {
+      const ackNum = ac.acknowledgementNumber || ac._id;
+      const exists = list.some(l => l.id === ackNum || l._id === ac._id || l.id === ac._id);
+      if (!exists) {
+        list.push({
+          id: ackNum,
+          _id: ac._id,
+          subject: ac.title || ac.subject,
+          title: ac.title || ac.subject,
+          department: ac.assignedUniversity ? 'Higher Education & R&D' : 'Municipal Civic Authority',
+          category: (ac.category || 'uncategorized').replace(/_/g, ' '),
+          district: ac.district || '',
+          city: ac.city || '',
+          urgency: ac.urgency || 'medium',
+          status: ac.status,
+          location: ac.location?.address || ac.address || `${ac.city || ''} ${ac.district || ''}`.trim() || 'Recorded Location',
+          createdAt: ac.createdAt,
+          updatedAt: ac.updatedAt
+        });
+      }
+    });
+    return list;
+  }, [localGrievances, backendGrievances]);
 
   // Feedback modal state
   const [feedbackGrievance, setFeedbackGrievance] = useState(null);
@@ -29,14 +71,14 @@ export default function CitizenDashboard() {
   const [comment, setComment] = useState('');
   const [feedbackSuccess, setFeedbackSuccess] = useState('');
 
-  // 5 Status Counters (Requirement 21: Total, Submitted, Under Review, In Progress, Resolved)
+  // 5 Status Counters (Total, Submitted, Under Review, In Progress, Resolved)
   const stats = useMemo(() => {
     return {
       total: myGrievances.length,
-      submitted: myGrievances.filter(g => g.status === 'submitted' || g.status === 'pending').length,
-      underReview: myGrievances.filter(g => g.status === 'under_review').length,
+      submitted: myGrievances.filter(g => g.status === 'submitted').length,
+      underReview: myGrievances.filter(g => ['pending', 'under_review'].includes(g.status)).length,
       inProgress: myGrievances.filter(g => ['assigned', 'action_taken', 'in_progress'].includes(g.status)).length,
-      resolved: myGrievances.filter(g => g.status === 'resolved' || g.status === 'closed').length,
+      resolved: myGrievances.filter(g => ['resolved', 'closed'].includes(g.status)).length,
     };
   }, [myGrievances]);
 
@@ -72,7 +114,7 @@ export default function CitizenDashboard() {
                 </span>
               </div>
               <p className="text-xs text-gray-300 mt-0.5">
-                Samadhan Setu Citizen Redressal Portal · {user?.city ? `${user.city}, ` : ''}{user?.district ? `${user.district}, ` : ''}{user?.state || 'Pan-India Coverage'}
+                Samadhan Setu Societal Innovation Collaboration Portal &bull; {user?.city ? `${user.city}, ` : ''}{user?.district ? `${user.district}, ` : ''}{user?.state || 'Pan-India Coverage'}
               </p>
             </div>
           </div>
@@ -83,14 +125,14 @@ export default function CitizenDashboard() {
               className="px-4 py-2 bg-saffron-600 hover:bg-saffron-700 text-white font-bold text-xs rounded flex items-center gap-1.5 shadow-sm transition-colors"
             >
               <Plus size={14} />
-              <span>File a Grievance</span>
+              <span>Submit Challenge</span>
             </Link>
             <Link
               to="/track"
               className="px-4 py-2 bg-navy-800 hover:bg-navy-700 text-white font-bold text-xs rounded border border-navy-600 transition-colors flex items-center gap-1.5"
             >
               <Search size={14} className="text-saffron-400" />
-              <span>Track Grievance</span>
+              <span>Track Challenge</span>
             </Link>
           </div>
         </div>
@@ -102,7 +144,7 @@ export default function CitizenDashboard() {
           </div>
         )}
 
-        {/* ── 5 SUMMARY STAT CARDS (Requirement 21: Total, Submitted, Under Review, In Progress, Resolved) ── */}
+        {/* ── 5 SUMMARY STAT CARDS ── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
           
           {/* Card 1: Total */}
@@ -112,7 +154,7 @@ export default function CitizenDashboard() {
             </div>
             <div>
               <div className="text-xl font-extrabold text-navy-950 font-mono">{stats.total}</div>
-              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total</div>
+              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Submitted</div>
             </div>
           </div>
 
@@ -127,42 +169,42 @@ export default function CitizenDashboard() {
             </div>
           </div>
 
-          {/* Card 3: Under Review */}
+          {/* Card 3: Pending / Under Review */}
           <div className="bg-white p-3.5 rounded border border-gray-300 shadow-sm flex items-center gap-3">
             <div className="w-9 h-9 rounded bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center flex-shrink-0 font-bold">
               <Clock size={18} />
             </div>
             <div>
               <div className="text-xl font-extrabold text-amber-600 font-mono">{stats.underReview}</div>
-              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Under Review</div>
+              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Pending / Under Review</div>
             </div>
           </div>
 
-          {/* Card 4: In Progress */}
+          {/* Card 4: In Progress / Action Taken */}
           <div className="bg-white p-3.5 rounded border border-gray-300 shadow-sm flex items-center gap-3">
             <div className="w-9 h-9 rounded bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center flex-shrink-0 font-bold">
               <Building2 size={18} />
             </div>
             <div>
               <div className="text-xl font-extrabold text-blue-700 font-mono">{stats.inProgress}</div>
-              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">In Progress</div>
+              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">In Progress / Action Taken</div>
             </div>
           </div>
 
-          {/* Card 5: Resolved */}
+          {/* Card 5: Resolved / Closed */}
           <div className="bg-white p-3.5 rounded border border-gray-300 shadow-sm flex items-center gap-3">
             <div className="w-9 h-9 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center flex-shrink-0 font-bold">
               <CheckCircle2 size={18} />
             </div>
             <div>
               <div className="text-xl font-extrabold text-emerald-700 font-mono">{stats.resolved}</div>
-              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Resolved</div>
+              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Resolved / Closed</div>
             </div>
           </div>
 
         </div>
 
-        {/* ── MY GRIEVANCES TABLE (Requirement 21) ───────────────────────────────── */}
+        {/* ── MY GRIEVANCES TABLE ── */}
         <div className="bg-white rounded border border-gray-300 shadow-sm overflow-hidden">
           
           <div className="px-5 py-3.5 bg-gray-100 border-b border-gray-300 flex items-center justify-between">
@@ -170,20 +212,23 @@ export default function CitizenDashboard() {
               My Grievances ({myGrievances.length})
             </h2>
             <Link to="/submit" className="text-xs text-navy-900 font-bold hover:underline">
-              + File New Grievance
+              + Register a Grievance
             </Link>
           </div>
 
           {myGrievances.length === 0 ? (
             <div className="p-10 text-center text-gray-500">
-              <FileText size={32} className="mx-auto text-gray-400 mb-2" />
-              <div className="font-bold text-sm text-navy-950">No Grievances Registered Yet</div>
-              <p className="text-xs text-gray-500 mt-1">Have you noticed any civic issue requiring government resolution?</p>
+              <FileText size={36} className="mx-auto text-gray-400 mb-2" />
+              <div className="font-bold text-sm text-navy-950">No grievances submitted yet</div>
+              <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                Have you noticed any civic issue requiring government resolution? Register your grievance for timely administrative action.
+              </p>
               <Link
                 to="/submit"
-                className="mt-3 inline-block px-4 py-2 bg-saffron-600 text-white font-bold text-xs rounded hover:bg-saffron-700"
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-saffron-600 text-white font-bold text-xs rounded hover:bg-saffron-700 shadow-sm transition-colors"
               >
-                File Your First Grievance
+                <Plus size={14} />
+                <span>Register a Grievance</span>
               </Link>
             </div>
           ) : (
@@ -192,10 +237,9 @@ export default function CitizenDashboard() {
                 <thead>
                   <tr className="bg-gray-50 text-gray-600 font-bold border-b border-gray-200">
                     <th className="py-3 px-3.5">Grievance ID</th>
-                    <th className="py-3 px-3.5">Title</th>
-                    <th className="py-3 px-3.5">Location</th>
-                    <th className="py-3 px-3.5">Category</th>
-                    <th className="py-3 px-3.5">Date</th>
+                    <th className="py-3 px-3.5">Title / Subject</th>
+                    <th className="py-3 px-3.5">Department</th>
+                    <th className="py-3 px-3.5">Date Submitted</th>
                     <th className="py-3 px-3.5 text-center">Status</th>
                     <th className="py-3 px-3.5 text-center">Actions</th>
                   </tr>
@@ -210,52 +254,40 @@ export default function CitizenDashboard() {
                         </Link>
                       </td>
 
-                      {/* Title */}
-                      <td className="py-3 px-3.5 max-w-[200px]">
+                      {/* Title / Subject */}
+                      <td className="py-3 px-3.5 max-w-[220px]">
                         <div className="font-bold text-gray-900 truncate" title={g.subject || g.title}>
                           {g.subject || g.title}
                         </div>
-                      </td>
-
-                      {/* Location */}
-                      <td className="py-3 px-3.5 max-w-[180px] text-gray-600">
-                        <div className="truncate" title={g.location}>
-                          {g.city ? `${g.city}, ` : ''}{g.district ? `${g.district}` : g.location}
+                        <div className="text-[11px] text-gray-500 truncate mt-0.5">
+                          {g.city ? `${g.city}, ` : ''}{g.district || g.location}
                         </div>
                       </td>
 
-                      {/* Category */}
-                      <td className="py-3 px-3.5 text-gray-700 font-medium whitespace-nowrap">
-                        {g.category}
+                      {/* Department */}
+                      <td className="py-3 px-3.5 max-w-[180px] text-gray-700 font-medium truncate" title={g.department}>
+                        {g.department || 'Municipal Administration'}
                       </td>
 
-                      {/* Date */}
+                      {/* Date Submitted */}
                       <td className="py-3 px-3.5 font-mono text-gray-600 whitespace-nowrap">
                         {new Date(g.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </td>
 
                       {/* Status */}
                       <td className="py-3 px-3.5 text-center whitespace-nowrap">
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
-                          g.status === 'resolved'
-                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                            : ['assigned', 'action_taken', 'in_progress'].includes(g.status)
-                            ? 'bg-blue-100 text-blue-800 border-blue-300'
-                            : 'bg-amber-100 text-amber-800 border-amber-300'
-                        }`}>
-                          {g.status.replace('_', ' ')}
-                        </span>
+                        <StatusBadge status={g.status} />
                       </td>
 
-                      {/* Actions: View, Track, Download PDF */}
+                      {/* Actions: View Details, Track, Download PDF */}
                       <td className="py-3 px-3.5 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1.5">
                           <Link
                             to={`/complaints/${g._id || g.id}`}
-                            className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-[#17324D] rounded text-[11px] font-semibold border border-gray-300 transition-colors"
+                            className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-[#17324D] rounded text-[11px] font-semibold border border-gray-300 transition-colors"
                             title="View Details"
                           >
-                            View
+                            View Details
                           </Link>
                           <button
                             onClick={() => navigate(`/track?id=${g.id}`)}
