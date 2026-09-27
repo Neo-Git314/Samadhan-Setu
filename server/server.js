@@ -38,21 +38,36 @@ app.get('/', (_req, res) => {
   });
 });
 
-// Health check endpoint
-app.get('/api/health', (_req, res) => {
+// Health check endpoint (both /api/health and /health)
+app.get(['/api/health', '/health'], (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// Mount Routes
+// Mount Routes (Supports both /api/* and root /* for seamless frontend and direct requests)
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
+
 app.use('/api/complaints', complaintsRoutes);
+app.use('/complaints', complaintsRoutes);
 app.use('/api/grievances', complaintsRoutes);
+app.use('/grievances', complaintsRoutes);
+
 app.use('/api/universities', universitiesRoutes);
+app.use('/universities', universitiesRoutes);
+
 app.use('/api/projects', projectsRoutes);
+app.use('/projects', projectsRoutes);
+
 app.use('/api/industry', industryRoutes);
+app.use('/industry', industryRoutes);
 app.use('/api/industry-partners', industryRoutes);
+app.use('/industry-partners', industryRoutes);
+
 app.use('/api/analytics', analyticsRoutes);
+app.use('/analytics', analyticsRoutes);
+
 app.use('/api/notifications', notificationsRoutes);
+app.use('/notifications', notificationsRoutes);
 
 // Catch-all 404 handler for undefined routes
 app.use((_req, res) => {

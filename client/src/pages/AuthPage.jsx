@@ -118,7 +118,9 @@ export default function AuthPage() {
         email: registerForm.email,
         password: registerForm.password,
         role: registerForm.role,
-        district: registerForm.district
+        phone: registerForm.mobile,
+        district: registerForm.district,
+        organization: `${registerForm.district}, ${registerForm.state}`
       });
       const { token, user } = res.data;
       login(user, token);
